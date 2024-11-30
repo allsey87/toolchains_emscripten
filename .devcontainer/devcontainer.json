@@ -1,0 +1,12 @@
+{
+   "name": "toolchains_emscripten",
+   "build": { "dockerfile": "Dockerfile" },
+   "remoteUser": "developer",
+   "customizations": {
+      "vscode": {
+         "extensions": [
+            "BazelBuild.vscode-bazel"
+         ]
+      }
+   }
+}
