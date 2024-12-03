@@ -1,0 +1,7 @@
+"bazel-contrib/toolchains_emscripten/tests/rules_cc"
+
+bazel_dep(name = "toolchains_emscripten", version = "0.0.0")
+local_path_override(
+    module_name = "toolchains_emscripten",
+    path = "../.."
+)

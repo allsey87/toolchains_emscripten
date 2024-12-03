@@ -1,1 +1,23 @@
+"bazel-contrib/toolchains_emscripten"
+
+module(
+    name = "toolchains_emscripten",
+    version = "0.0.0",
+    compatibility_level = 1,
+)
+
 bazel_dep(name = "platforms", version = "0.0.9")
+bazel_dep(name = "rules_python", version = "0.23.1")
+
+# in the logic here, I need to declare both toolchains and platforms? but how are these selected?
+# I think generally speaking, I should not be globally setting the toolchain (?) although Bazel does
+# have the distinction between the exec and host configuration.
+register_execution_platforms(
+    "//platform:wasm32-emscripten",
+    "//platform:wasm32-wasi",
+)
+
+register_toolchains(
+    "//toolchain:emscripten_toolchain",
+)
+

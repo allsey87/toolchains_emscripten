@@ -1,0 +1,3 @@
+build \
+    --platforms=@toolchains_emscripten//platform:wasm32-emscripten \
+    --incompatible_enable_cc_toolchain_resolution \

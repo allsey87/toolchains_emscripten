@@ -1,0 +1,15 @@
+platform(
+    name = "wasm32-emscripten",
+    constraint_values = [
+        "@platforms//cpu:wasm32",
+        "@platforms//os:emscripten",
+    ],
+)
+
+platform(
+    name = "wasm32-wasi",
+    constraint_values = [
+        "@platforms//cpu:wasm32",
+        "@platforms//os:wasi",
+    ],
+)
