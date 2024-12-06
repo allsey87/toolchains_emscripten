@@ -5,3 +5,19 @@ local_path_override(
     module_name = "toolchains_emscripten",
     path = "../.."
 )
+
+emscripten = use_extension("@toolchains_emscripten//extensions:emscripten.bzl", "emscripten")
+emscripten.toolchain(
+    version = "3.1.73",
+    is_default = True
+)
+# emscripten.cache(
+#     lto = True,
+#     pic = True,
+#     targets = ["crtbegin", "crt1_proxy_main"]
+# )
+use_repo(emscripten, emscripten_3_1_73 = "emscripten_3_1_73")
+
+# it might make sense to export emscripten_cc_binary, emscripten_cc_library etc
+# for each exported toolchain, however, it is unclear how this would work with
+# build systems

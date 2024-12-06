@@ -17,7 +17,29 @@ register_execution_platforms(
     "//platform:wasm32-wasi",
 )
 
+# NOTE: perhaps this should be moved inside extensions since I only want to register a toolchain in response
+# to the emscripten.toolchain() "function call"
+# The problem is that removing this results in being unable to select a platform for wasm targets.
+
+# NOTE NOTE NOTE NOTE NOTE NOTE NOTE NOTE NOTE
+# NOTE: Looking at what rules_python is doing, I think the approach is to create some target here
+# that is a list of toolchains to register. This list can then be populated by the module extension?
+# register_toolchains("@pythons_hub//:all")
+
+# https://github.com/bazelbuild/rules_python/blob/main/python/private/python.bzl#L240 hub_repo(name = 'pythons_hub')
+# https://github.com/bazelbuild/rules_python/blob/main/python/private/pythons_hub.bzl#L145 
+# https://github.com/bazelbuild/rules_python/blob/main/python/private/toolchains_repo.bzl#L38
+
+# According to Claude, no docs on this, "all" is a special target that builds all, non-hidden (those starting with _) targets
+# What is strange is that I am currently defining by toolchain inside a repo like emscripten_3_1_73, however, it seems like
+# what I need to have all my toolchains declared in a single repo.
+
+# TODO look at rules_python again and understand which repositories it is instansiating the toolchains, note that in Python rules
+# the whole emscripten_3_1_73 is only used for exporting py_binary etc. I don't think I need this for now unless I want to create
+# emscripten_shared_library emscripten_binary etc. Although if I don't call use_repo in my module, is the toolchain still bought
+# into scope? I think yes?
+
 register_toolchains(
-    "//toolchain:emscripten_toolchain",
+    "//toolchain:all", # all non-hidden targets in the //toolchain repo - it's a repo since it has a build file.
 )
 
