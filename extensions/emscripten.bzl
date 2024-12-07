@@ -24,7 +24,6 @@ emscripten_repository = repository_rule(
     }
 )
 
-####
 
 def _emscripten_impl(ctx):
     for module in ctx.modules:
@@ -36,14 +35,6 @@ def _emscripten_impl(ctx):
             name = repository_name,
             version = version
         )
-        # NOTE that register_toolchains takes a label, which might be pointing at a repository. Are toolchains defined
-        # inside a repository? How about rules? I think maybe since 
-
-        # next steps are to try and register the toolchain from here, I need to create some py_binaries
-        # based on the downloaded archive and then register the toolchain based on those.
-        # CHECK HERE: https://github.com/bazelbuild/rules_python/blob/096a04fdcd2c3ff29f485d57129a1d838f022867/python/private/python_register_toolchains.bzl#L52-L56
-
-        # https://github.com/vvviktor/bazel-mingw-toolchain/blob/main/toolchain/toolchain_config.bzl
     
     return ctx.extension_metadata(reproducible = True)
 

@@ -18,6 +18,7 @@ emscripten.toolchain(
 # )
 use_repo(emscripten, emscripten_3_1_73 = "emscripten_3_1_73")
 
+register_toolchains("@emscripten_3_1_73//:toolchain")
 # it might make sense to export emscripten_cc_binary, emscripten_cc_library etc
 # for each exported toolchain, however, it is unclear how this would work with
 # build systems

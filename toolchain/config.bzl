@@ -67,10 +67,14 @@ def _impl(ctx):
     # I need to download the emscripten tools and have defined by py_binaries before I reach
     # here!
     print('at this point, here! I need my python binaries to set up')
+    print("""
+        these binaries could be passed via ctx.attr.emcc labels or hardcoded if this whole file is part of a template
+        that is being generated
+    """)
     
 
-    MINGW_PATH = ctx.var.get("MINGW_PATH")
-    GCC_VERSION = ctx.var.get("GCC_VERSION")
+    MINGW_PATH = "" #ctx.var.get("MINGW_PATH")
+    GCC_VERSION = "" #ctx.var.get("GCC_VERSION")
     
     tool_paths_dict = {
         "ar" : MINGW_PATH + "/bin/ar",
@@ -89,11 +93,11 @@ def _impl(ctx):
     ]
 
     cxx_builtin_include_directories = [
-        MINGW_PATH + "/include",
-        MINGW_PATH + "/lib/gcc/x86_64-w64-mingw32/" + GCC_VERSION + "/include-fixed",
-        MINGW_PATH + "/lib/gcc/x86_64-w64-mingw32/" + GCC_VERSION + "/include",
-        MINGW_PATH + "/lib/gcc/x86_64-w64-mingw32/" + GCC_VERSION + "/install-tools/include",
-        MINGW_PATH + "/x86_64-w64-mingw32/include",
+        # MINGW_PATH + "/include",
+        # MINGW_PATH + "/lib/gcc/x86_64-w64-mingw32/" + GCC_VERSION + "/include-fixed",
+        # MINGW_PATH + "/lib/gcc/x86_64-w64-mingw32/" + GCC_VERSION + "/include",
+        # MINGW_PATH + "/lib/gcc/x86_64-w64-mingw32/" + GCC_VERSION + "/install-tools/include",
+        # MINGW_PATH + "/x86_64-w64-mingw32/include",
     ]
 
     abi_version = "gcc-" + GCC_VERSION
@@ -104,40 +108,40 @@ def _impl(ctx):
         name = "default_compile_flags",
         enabled = True,
         flag_sets = [
-            flag_set(
-                actions = all_compile_actions,
-                flag_groups = ([
-                    flag_group(
-                        flags = ctx.attr.compile_flags,
-                    ),
-                ] if ctx.attr.compile_flags else []),
-            ),
-            flag_set(
-                actions = all_compile_actions,
-                flag_groups = ([
-                    flag_group(
-                        flags = ctx.attr.dbg_compile_flags,
-                    ),
-                ] if ctx.attr.dbg_compile_flags else []),
-                with_features = [with_feature_set(features = ["dbg"])],
-            ),
-            flag_set(
-                actions = all_compile_actions,
-                flag_groups = ([
-                    flag_group(
-                        flags = ctx.attr.opt_compile_flags,
-                    ),
-                ] if ctx.attr.opt_compile_flags else []),
-                with_features = [with_feature_set(features = ["opt"])],
-            ),
-            flag_set(
-                actions = all_cpp_compile_actions + [ACTION_NAMES.lto_backend],
-                flag_groups = ([
-                    flag_group(
-                        flags = ctx.attr.cxx_flags,
-                    ),
-                ] if ctx.attr.cxx_flags else []),
-            ),
+            # flag_set(
+            #     actions = all_compile_actions,
+            #     flag_groups = ([
+            #         flag_group(
+            #             flags = ctx.attr.compile_flags,
+            #         ),
+            #     ] if ctx.attr.compile_flags else []),
+            # ),
+            # flag_set(
+            #     actions = all_compile_actions,
+            #     flag_groups = ([
+            #         flag_group(
+            #             flags = ctx.attr.dbg_compile_flags,
+            #         ),
+            #     ] if ctx.attr.dbg_compile_flags else []),
+            #     with_features = [with_feature_set(features = ["dbg"])],
+            # ),
+            # flag_set(
+            #     actions = all_compile_actions,
+            #     flag_groups = ([
+            #         flag_group(
+            #             flags = ctx.attr.opt_compile_flags,
+            #         ),
+            #     ] if ctx.attr.opt_compile_flags else []),
+            #     with_features = [with_feature_set(features = ["opt"])],
+            # ),
+            # flag_set(
+            #     actions = all_cpp_compile_actions + [ACTION_NAMES.lto_backend],
+            #     flag_groups = ([
+            #         flag_group(
+            #             flags = ctx.attr.cxx_flags,
+            #         ),
+            #     ] if ctx.attr.cxx_flags else []),
+            # ),
         ],
     )
 
@@ -145,23 +149,23 @@ def _impl(ctx):
         name = "default_link_flags",
         enabled = True,
         flag_sets = [
-            flag_set(
-                actions = all_link_actions + lto_index_actions,
-                flag_groups = ([
-                    flag_group(
-                        flags = ctx.attr.link_flags,
-                    ),
-                ] if ctx.attr.link_flags else []),
-            ),
-            flag_set(
-                actions = all_link_actions + lto_index_actions,
-                flag_groups = ([
-                    flag_group(
-                        flags = ctx.attr.opt_link_flags,
-                    ),
-                ] if ctx.attr.opt_link_flags else []),
-                with_features = [with_feature_set(features = ["opt"])],
-            ),
+            # flag_set(
+            #     actions = all_link_actions + lto_index_actions,
+            #     flag_groups = ([
+            #         flag_group(
+            #             flags = ctx.attr.link_flags,
+            #         ),
+            #     ] if ctx.attr.link_flags else []),
+            # ),
+            # flag_set(
+            #     actions = all_link_actions + lto_index_actions,
+            #     flag_groups = ([
+            #         flag_group(
+            #             flags = ctx.attr.opt_link_flags,
+            #         ),
+            #     ] if ctx.attr.opt_link_flags else []),
+            #     with_features = [with_feature_set(features = ["opt"])],
+            # ),
         ],
     )
 
@@ -180,12 +184,12 @@ def _impl(ctx):
         artifact_name_pattern(
             category_name = "executable",
             prefix = "",
-            extension = ".exe",
+            extension = ".wasm",
         ),
         artifact_name_pattern(
             category_name = "dynamic_library",
             prefix = "lib",
-            extension = ".dll",
+            extension = ".so",
         )
     ]
 
@@ -194,14 +198,14 @@ def _impl(ctx):
         features = features,
         action_configs = action_configs,
         cxx_builtin_include_directories = cxx_builtin_include_directories,
-        toolchain_identifier = ctx.attr.toolchain_identifier,
-        host_system_name = ctx.attr.host_system_name,
-        target_system_name = ctx.attr.target_system_name,
-        target_cpu = ctx.attr.cpu,
-        target_libc = ctx.attr.target_libc,
-        compiler = ctx.attr.compiler,
+        toolchain_identifier = "wasm32-emscripten",
+        host_system_name = "i686-unknown-linux-gnu",
+        target_system_name = "wasm32-unknown-emscripten",
+        target_cpu = "wasm32",
+        target_libc = "musl/js",
+        compiler = "emscripten",
         abi_version = abi_version,
-        abi_libc_version = ctx.attr.abi_libc_version,
+        abi_libc_version = "default",
         tool_paths = tool_paths,
         artifact_name_patterns = artifact_name_patterns,
     )
@@ -216,6 +220,7 @@ emscripten_toolchain_config = rule(
     # Here I can specify which arguments are mandatory, their types, and default values
 
     attrs = {
+        "emcc": attr.label(executable = True, cfg = "exec")
         # "abi_libc_version": attr.string(mandatory = True),
         # "compile_flags": attr.string_list(),
         # "compiler": attr.string(mandatory = True),
