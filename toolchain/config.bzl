@@ -4,8 +4,10 @@ load("@bazel_tools//tools/build_defs/cc:action_names.bzl", "ACTION_NAMES")
 
 load(
     "@bazel_tools//tools/cpp:cc_toolchain_config_lib.bzl",
+    "action_config",
     "artifact_name_pattern",
     "tool_path",
+    "tool",
     "feature",
     "flag_group",
     "flag_set",
@@ -61,36 +63,6 @@ lto_index_actions = [
 # ]
 
 def _impl(ctx):
-    # this where things are going to get a little bit different since I need to download
-    # my tools and set up py_binaries using them
-
-    # I need to download the emscripten tools and have defined by py_binaries before I reach
-    # here!
-    print('at this point, here! I need my python binaries to set up')
-    print("""
-        these binaries could be passed via ctx.attr.emcc labels or hardcoded if this whole file is part of a template
-        that is being generated
-    """)
-    
-
-    MINGW_PATH = "" #ctx.var.get("MINGW_PATH")
-    GCC_VERSION = "" #ctx.var.get("GCC_VERSION")
-    
-    tool_paths_dict = {
-        "ar" : MINGW_PATH + "/bin/ar",
-        "cpp" : MINGW_PATH + "/bin/cpp",
-        "gcc" : MINGW_PATH + "/bin/g++",
-        "gcov" : MINGW_PATH + "/bin/gcov",
-        "ld" : MINGW_PATH + "/bin/ld",
-        "nm" : MINGW_PATH + "/bin/nm",
-        "objdump" : MINGW_PATH + "/bin/objdump",
-        "strip" : MINGW_PATH + "/bin/strip",
-    }
-
-    tool_paths = [
-        tool_path(name = name, path = path)
-        for name, path in tool_paths_dict.items()
-    ]
 
     cxx_builtin_include_directories = [
         # MINGW_PATH + "/include",
@@ -100,9 +72,21 @@ def _impl(ctx):
         # MINGW_PATH + "/x86_64-w64-mingw32/include",
     ]
 
-    abi_version = "gcc-" + GCC_VERSION
-
-    action_configs = []
+    emcc = tool(tool = ctx.executable.emcc)
+    action_configs = [
+        action_config(
+            action_name = ACTION_NAMES.cpp_compile,
+            tools = [emcc],
+        ),
+        action_config(
+            action_name = ACTION_NAMES.cpp_module_codegen,
+            tools = [emcc],
+        ),
+        action_config(
+            action_name = ACTION_NAMES.cpp_module_compile,
+            tools = [emcc],
+        )
+    ]
 
     default_compile_flags_feature = feature(
         name = "default_compile_flags",
@@ -204,9 +188,8 @@ def _impl(ctx):
         target_cpu = "wasm32",
         target_libc = "musl/js",
         compiler = "emscripten",
-        abi_version = abi_version,
+        abi_version = "emscripten",
         abi_libc_version = "default",
-        tool_paths = tool_paths,
         artifact_name_patterns = artifact_name_patterns,
     )
 
@@ -220,7 +203,7 @@ emscripten_toolchain_config = rule(
     # Here I can specify which arguments are mandatory, their types, and default values
 
     attrs = {
-        "emcc": attr.label(executable = True, cfg = "exec")
+        "emcc": attr.label(mandatory = True, executable = True, allow_files = True, cfg = "exec")
         # "abi_libc_version": attr.string(mandatory = True),
         # "compile_flags": attr.string_list(),
         # "compiler": attr.string(mandatory = True),

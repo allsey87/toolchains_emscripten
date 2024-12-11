@@ -8,8 +8,3 @@ module(
 
 bazel_dep(name = "platforms", version = "0.0.10")
 bazel_dep(name = "rules_python", version = "0.40.0")
-
-# register_execution_platforms(
-#     "//platform:wasm32-emscripten",
-#     "//platform:wasm32-wasi",
-# )
