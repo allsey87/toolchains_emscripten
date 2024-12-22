@@ -3,7 +3,7 @@
 load("@rules_python//python:defs.bzl", "py_binary")
 load("@toolchains_emscripten//toolchain:config.bzl", "emscripten_toolchain_config")
 #load("@toolchains_emscripten//toolchain:node_config.bzl", "node_config")
-# load("@bazel_skylib//rules:write_file.bzl", "write_file")
+load("@bazel_skylib//rules:write_file.bzl", "write_file")
 #load("@bazel_skylib//rules/directory:directory.bzl", "directory")
 
 # Note that this file is executed by emcc/Python, hence I can put custom logic here to help find llvm root etc.
@@ -58,20 +58,32 @@ load("@toolchains_emscripten//toolchain:config.bzl", "emscripten_toolchain_confi
 #     ]
 # )
 
+filegroup(
+    name = "assets",
+    srcs = glob([
+        "install/bin/**/*",
+        "install/emscripten/cache/**/*",
+        "install/emscripten/node_modules/**/*"
+    ])
+)
+
 py_library(
     name = "emscripten",
     data = glob([
             "install/**/*"
         ],
         exclude = [
+            # TODO exclude Python files here
             "install/bin/**/*",
             "install/emscripten/cache/**/*",
             "install/emscripten/test/**/*",
             # it would be nice if we could also exclude install/emscripten/node_modules from here
             # https://stackoverflow.com/a/26293141/5164339 I would have to be able to set NODE_PATH
+            "install/emscripten/node_modules/**/*",
         ]
     ),
     srcs = glob([
+            # TODO include Python files from /install/emscripten here
             "install/emscripten/tools/**/*.py"
         ]
     ),
@@ -81,15 +93,50 @@ py_library(
     ],
 )
 
-py_binary(
-    name = "emcc",
-    deps = [":emscripten"],
-    srcs = ["install/emscripten/emcc.py"],
-    main = "install/emscripten/emcc.py",
+write_file(
+    name = "emcc_wrapper_py",
+    out = "emcc_wrapper.py",
+    content = [
+        "import sys",
+        "import os",
+        "import emcc",
+        # DEBUG
+        # "print('1. EM_BINARYEN_ROOT = {}'.format(os.environ['EM_BINARYEN_ROOT']))",
+        # "print('1. EM_LLVM_ROOT = {}'.format(os.environ['EM_LLVM_ROOT']))",
+        # "print('1. EM_EMSCRIPTEN_ROOT = {}'.format(os.environ['EM_EMSCRIPTEN_ROOT']))",
+        # "print('1. EM_NODE_JS = {}'.format(os.environ['EM_NODE_JS']))",
+        # "print('1. EM_CACHE = {}'.format(os.environ['EM_CACHE']))",
+        # DEBUG
+        # Update relative paths in environment variables to absolute paths
+        "os.environ['EM_BINARYEN_ROOT'] = os.path.abspath(os.environ['EM_BINARYEN_ROOT'])",
+        "os.environ['EM_LLVM_ROOT'] = os.path.abspath(os.environ['EM_LLVM_ROOT'])",
+        "os.environ['EM_EMSCRIPTEN_ROOT'] = os.path.abspath(os.environ['EM_EMSCRIPTEN_ROOT'])",
+        "os.environ['EM_NODE_JS'] = os.path.abspath(os.environ['EM_NODE_JS'])",
+        "os.environ['EM_CACHE'] = os.path.abspath(os.environ['EM_CACHE'])",
+        # DEBUG
+        # "print('2. EM_BINARYEN_ROOT = {}'.format(os.environ['EM_BINARYEN_ROOT']))",
+        # "print('2. EM_LLVM_ROOT = {}'.format(os.environ['EM_LLVM_ROOT']))",
+        # "print('2. EM_EMSCRIPTEN_ROOT = {}'.format(os.environ['EM_EMSCRIPTEN_ROOT']))",
+        # "print('2. EM_NODE_JS = {}'.format(os.environ['EM_NODE_JS']))",
+        # "print('2. EM_CACHE = {}'.format(os.environ['EM_CACHE']))",
+        # DEBUG
+        # Start Emscripten
+        "emcc.main(sys.argv)"
+    ]
 )
+
+py_binary(
+    name = "emcc_wrapper",
+    deps = [":emscripten"],
+    #srcs = ["install/emscripten/emcc.py"],
+    #main = "install/emscripten/emcc.py",
+    srcs = ["emcc_wrapper.py"],
+    main = "emcc_wrapper.py",
+)
+
 filegroup(
   name = "emcc_wrapper_zip",
-  srcs = [":emcc"],
+  srcs = [":emcc_wrapper"],
   output_group = "python_zip_file",
 )
 genrule(
@@ -102,9 +149,8 @@ genrule(
 
 emscripten_toolchain_config(
     name = "emscripten_toolchain_config",
-    install_dir = "@@INSTALL_DIR@@",
+    assets = ":assets",
     emcc = ":emcc_wrapper_zip_executable",
-    # this can be just expanded inside the rule using expand_location (but it still needs to be passed)
     node = "@nodejs//:node_bin",
 )
 
@@ -118,12 +164,12 @@ filegroup(
 # TODO delete this?
 filegroup(
     name = "compiler_files",
-    srcs = [":emcc_wrapper_zip_executable", "@nodejs//:node_bin"]
+    srcs = [":emcc_wrapper_zip_executable", "@nodejs//:node_bin", ":assets"]
 )
 
 filegroup(
     name = "linker_files",
-    srcs = [":emcc_wrapper_zip_executable", "@nodejs//:node_bin"]
+    srcs = [":emcc_wrapper_zip_executable", "@nodejs//:node_bin", ":assets"]
 )
 
 cc_toolchain(

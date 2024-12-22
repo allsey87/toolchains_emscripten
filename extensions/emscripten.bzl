@@ -2,11 +2,12 @@ load(":revisions.bzl", "EMSCRIPTEN_TAGS")
 
 EMSCRIPTEN_URL = "https://storage.googleapis.com/webassembly/emscripten-releases-builds/{}/{}/wasm-binaries{}.{}"
 
+# BINARYEN_ROOT = '{install_dir}'
+# LLVM_ROOT = '{install_dir}' + '/bin'
+# EMSCRIPTEN_ROOT = '{install_dir}' + '/emscripten'
+# CACHE = '{install_dir}' + '/emscripten/cache'
+
 EMSCRIPTEN_CONFIG = """
-BINARYEN_ROOT = '{install_dir}'
-LLVM_ROOT = '{install_dir}' + '/bin'
-EMSCRIPTEN_ROOT = '{install_dir}' + '/emscripten'
-CACHE = '{install_dir}' + '/emscripten/cache'
 FROZEN_CACHE = True
 """
 ####
@@ -24,9 +25,10 @@ def _emscripten_repository_impl(ctx):
     #print("ctx.path('install') = {}".format(ctx.path('install')))
 
     #print("XXXX = {}".format(ctx.attr.nodejs.relative("//:emcc")))
-    install_dir = ctx.path('install')
+    #install_dir = ctx.path('install')
 
-    ctx.file("install/emscripten/.emscripten", EMSCRIPTEN_CONFIG.format(install_dir = install_dir))
+    # Although we do not set any configuration here, this file needs to exist
+    ctx.file("install/emscripten/.emscripten", "")
 
 
     #ctx.execute(EMBUILDER!)
@@ -37,12 +39,13 @@ def _emscripten_repository_impl(ctx):
     #     environment = {
     #         "EM_IGNORE_SANITY": "1",
     #         "EM_NODE_JS": "/bin/false",
-    #         "EM_FROZEN_CACHE": "0",
+    #         "EM_FROZEN_CACHE": "0", # install_dir = ctx.path('install')
+    #
     #     }
     # )
 
     ctx.template("BUILD.bazel", Label("toolchain.tpl"), substitutions = {
-        "@@INSTALL_DIR@@": str(install_dir)
+        #"@@INSTALL_DIR@@": str(install_dir)
     })
 
 emscripten_repository = repository_rule(

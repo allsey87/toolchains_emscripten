@@ -66,13 +66,8 @@ lto_index_actions = [
 # ]
 
 def _impl(ctx):
-
-    #emscripten_dir = ctx.attr.emscripten_binaries.label.workspace_root
-    cxx_builtin_include_directories = [
-        ctx.attr.install_dir + "/emscripten/cache/sysroot/include/",
-        ctx.attr.install_dir + "/lib/clang/20/include"
-    ]
-
+    
+    
     emcc = tool(tool = ctx.executable.emcc)
     action_configs = [
         action_config(
@@ -122,6 +117,22 @@ def _impl(ctx):
     #     is_executable= True,
     # )
 
+
+    # BINARYEN_ROOT = '{install_dir}'
+    # LLVM_ROOT = '{install_dir}' + '/bin'
+    # EMSCRIPTEN_ROOT = '{install_dir}' + '/emscripten'
+    # CACHE = '{install_dir}' + '/emscripten/cache'
+    # FROZEN_CACHE = True
+
+    cxx_builtin_include_directories = [
+        ctx.attr.assets.label.workspace_root + "/install/emscripten/cache/sysroot/include/",
+        ctx.attr.assets.label.workspace_root + "/install/lib/clang/20/include"
+    ]
+
+    print('1.', ctx.attr.assets.label.workspace_root + "/install/emscripten/cache/sysroot/include/")
+    print('2.', ctx.attr.assets.label.workspace_root + "/install/lib/clang/20/include")
+
+
     default_compile_flags_feature = feature(
         name = "default_compile_flags",
         enabled = True,
@@ -131,11 +142,32 @@ def _impl(ctx):
                 env_entries = [
                     # Ideally this would just be set on the py_binary, however,
                     # due to the python_zip_file trick, the `env` attribute is lost
+                    
+                    # The main toolchain is using @nodejs//:node_files and is not setting this environment variable.
+                    # check how they are making nodejs available to the toolchain?
+                    env_entry(
+                        key = "EM_BINARYEN_ROOT",
+                        value = ctx.attr.assets.label.workspace_root + "/install",
+                    ),
+                    env_entry(
+                        key = "EM_LLVM_ROOT",
+                        value = ctx.attr.assets.label.workspace_root + "/install/bin",
+                    ),
+                    env_entry(
+                        key = "EM_EMSCRIPTEN_ROOT",
+                        value = ctx.attr.assets.label.workspace_root + "/install/emscripten",
+                    ),
+                    env_entry(
+                        key = "EM_CACHE",
+                        value = ctx.attr.assets.label.workspace_root + "/install/emscripten/cache",
+                    ),
                     env_entry(
                         key = "EM_NODE_JS",
-                        # Is there a cleaner way to do this? Perhaps using symlinks?
-                        #value = "../../../../../" + ctx.executable.node.path,
                         value = ctx.executable.node.path,
+                    ),
+                    env_entry(
+                        key = "EM_FROZEN_CACHE",
+                        value = "1",
                     ),
                 ],
             )
@@ -253,9 +285,11 @@ emscripten_toolchain_config = rule(
 
     attrs = {
         "emcc": attr.label(mandatory = True, executable = True, allow_files = True, cfg = "exec"),
-        "install_dir": attr.string(mandatory = True),
+        #"install_dir": attr.string(mandatory = True),
         # these are needed for emscripten config
-        #"llvm_root": attr.label(mandatory = True, providers = [DirectoryInfo]),
+        "assets": attr.label(mandatory = True, cfg = "exec"), # TODO is this cfg attribute necessary?
+        # "node_modules": attr.label(mandatory = True, cfg = "exec"),
+        # "llvm_root": attr.label(mandatory = True, cfg = "exec"),
         "node": attr.label(mandatory = True, executable = True, allow_files = True, cfg = "exec"),
         # "abi_libc_version": attr.string(mandatory = True),
         # "compile_flags": attr.string_list(),
