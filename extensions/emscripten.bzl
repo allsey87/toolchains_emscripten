@@ -2,6 +2,13 @@ load(":revisions.bzl", "EMSCRIPTEN_TAGS")
 
 EMSCRIPTEN_URL = "https://storage.googleapis.com/webassembly/emscripten-releases-builds/{}/{}/wasm-binaries{}.{}"
 
+EMSCRIPTEN_CONFIG = """
+BINARYEN_ROOT = '{install_dir}'
+LLVM_ROOT = '{install_dir}' + '/bin'
+EMSCRIPTEN_ROOT = '{install_dir}' + '/emscripten'
+CACHE = '{install_dir}' + '/emscripten/cache'
+FROZEN_CACHE = True
+"""
 ####
 
 def _emscripten_repository_impl(ctx):
@@ -10,17 +17,38 @@ def _emscripten_repository_impl(ctx):
     # TODO support and test sha256 for other OSes
     #path = EMSCRIPTEN_URL.format("linux", revision.hash, "", "tar.xz")
     #ctx.download_and_extract(path, sha256=revision.sha_linux)
+    # TODO hack to speed up local development
+    #ctx.download_and_extract("http://127.0.0.1:8000/wasm-binaries-hack.tar.xz", sha256="8c3f19c7a154f04bcdc744ba1b4264bd17f106512018ec629220ba5c18cec488")
+    ctx.download_and_extract("http://127.0.0.1:8000/wasm-binaries.tar.xz", sha256="4f3bc91cffec9096c3d3ccb11c222e1c2cb7734a0ff9a92d192e171849e68f28")
 
-    ctx.file("install/emscripten/emcc.py", "print('dummy compiler')")
-    # these two files make it possible to `bazel run @emscripten_3_1_73//:emcc` from rules_cc
+    #print("ctx.path('install') = {}".format(ctx.path('install')))
+
+    #print("XXXX = {}".format(ctx.attr.nodejs.relative("//:emcc")))
+    install_dir = ctx.path('install')
+
+    ctx.file("install/emscripten/.emscripten", EMSCRIPTEN_CONFIG.format(install_dir = install_dir))
+
+
+    #ctx.execute(EMBUILDER!)
+    # This should pick up the args from the config file, overriding frozen cache so that embuilder can do its thing
+    # repository_ctx.execute(
+    #     embuilder_args,
+    #     quiet=True,
+    #     environment = {
+    #         "EM_IGNORE_SANITY": "1",
+    #         "EM_NODE_JS": "/bin/false",
+    #         "EM_FROZEN_CACHE": "0",
+    #     }
+    # )
+
     ctx.template("BUILD.bazel", Label("toolchain.tpl"), substitutions = {
-        #"hello": "world"
+        "@@INSTALL_DIR@@": str(install_dir)
     })
 
 emscripten_repository = repository_rule(
     _emscripten_repository_impl,
     attrs = {
-        "version": attr.string()
+        "version": attr.string(),
     }
 )
 

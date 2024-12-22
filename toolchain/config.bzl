@@ -1,11 +1,14 @@
 "bazel-contrib/toolchains_emscripten/toolchain"
 
 load("@bazel_tools//tools/build_defs/cc:action_names.bzl", "ACTION_NAMES")
+#load("@bazel_skylib//rules/directory:providers.bzl", "DirectoryInfo")
 
 load(
     "@bazel_tools//tools/cpp:cc_toolchain_config_lib.bzl",
     "action_config",
     "artifact_name_pattern",
+    "env_entry",
+    "env_set",
     "tool_path",
     "tool",
     "feature",
@@ -64,12 +67,10 @@ lto_index_actions = [
 
 def _impl(ctx):
 
+    #emscripten_dir = ctx.attr.emscripten_binaries.label.workspace_root
     cxx_builtin_include_directories = [
-        # MINGW_PATH + "/include",
-        # MINGW_PATH + "/lib/gcc/x86_64-w64-mingw32/" + GCC_VERSION + "/include-fixed",
-        # MINGW_PATH + "/lib/gcc/x86_64-w64-mingw32/" + GCC_VERSION + "/include",
-        # MINGW_PATH + "/lib/gcc/x86_64-w64-mingw32/" + GCC_VERSION + "/install-tools/include",
-        # MINGW_PATH + "/x86_64-w64-mingw32/include",
+        ctx.attr.install_dir + "/emscripten/cache/sysroot/include/",
+        ctx.attr.install_dir + "/lib/clang/20/include"
     ]
 
     emcc = tool(tool = ctx.executable.emcc)
@@ -80,17 +81,65 @@ def _impl(ctx):
         ),
         action_config(
             action_name = ACTION_NAMES.cpp_module_codegen,
-            tools = [emcc],
+            tools = [emcc]
         ),
         action_config(
             action_name = ACTION_NAMES.cpp_module_compile,
             tools = [emcc],
+        ),
+        action_config(
+            action_name = ACTION_NAMES.cpp_link_executable,
+            tools = [emcc]
+            #tools = [emcc],
         )
     ]
+
+    # print("ctx.executable.nodejs.path = {}".format(ctx.executable.nodejs.path))
+    # print("ctx.executable.nodejs.root = {}".format(ctx.executable.nodejs.root.path))
+    # print("ctx.executable.nodejs.dirname = {}".format(ctx.executable.nodejs.dirname))
+    # print("ctx.executable.nodejs.short_path = {}".format(ctx.executable.nodejs.short_path))
+    
+    # TODO create a genrule that just writes the location of nodejs to a file?
+
+    # print('ctx.attr.node.label.name = {}'.format(ctx.attr.node.label.name)) # bin/nodejs/bin/node
+    # print('ctx.attr.node.label.package = {}'.format(ctx.attr.node.label.package)) #
+    # print('ctx.attr.node.label.repo_name = {}'.format(ctx.attr.node.label.repo_name)) # rules_nodejs~~node~nodejs_linux_amd64
+    # print('ctx.attr.node.label.workspace_name = {}'.format(ctx.attr.node.label.workspace_name)) # rules_nodejs~~node~nodejs_linux_amd64
+    # print('ctx.attr.node.label.workspace_root = {}'.format(ctx.attr.node.label.workspace_root)) # external/rules_nodejs~~node~nodejs_linux_amd64
+
+    # This could be a way to use Embuilder?
+    # output = ctx.actions.declare_file("out.txt")
+    # ctx.actions.run(
+    #     outputs = [output],
+    #     executable = ctx.executable.nodejs,
+    #     arguments = ["aaaa"],
+    # )
+
+    # nodejs = ctx.actions.declare_file("xxxnodexxx")
+    # ctx.actions.symlink(
+    #     output = nodejs,
+    #     target_file = ctx.executable.nodejs,
+    #     is_executable= True,
+    # )
 
     default_compile_flags_feature = feature(
         name = "default_compile_flags",
         enabled = True,
+        env_sets = [
+            env_set(
+                actions = all_compile_actions + all_link_actions,
+                env_entries = [
+                    # Ideally this would just be set on the py_binary, however,
+                    # due to the python_zip_file trick, the `env` attribute is lost
+                    env_entry(
+                        key = "EM_NODE_JS",
+                        # Is there a cleaner way to do this? Perhaps using symlinks?
+                        #value = "../../../../../" + ctx.executable.node.path,
+                        value = ctx.executable.node.path,
+                    ),
+                ],
+            )
+        ],
         flag_sets = [
             # flag_set(
             #     actions = all_compile_actions,
@@ -203,7 +252,11 @@ emscripten_toolchain_config = rule(
     # Here I can specify which arguments are mandatory, their types, and default values
 
     attrs = {
-        "emcc": attr.label(mandatory = True, executable = True, allow_files = True, cfg = "exec")
+        "emcc": attr.label(mandatory = True, executable = True, allow_files = True, cfg = "exec"),
+        "install_dir": attr.string(mandatory = True),
+        # these are needed for emscripten config
+        #"llvm_root": attr.label(mandatory = True, providers = [DirectoryInfo]),
+        "node": attr.label(mandatory = True, executable = True, allow_files = True, cfg = "exec"),
         # "abi_libc_version": attr.string(mandatory = True),
         # "compile_flags": attr.string_list(),
         # "compiler": attr.string(mandatory = True),

@@ -9,7 +9,7 @@ local_path_override(
 emscripten = use_extension("@toolchains_emscripten//extensions:emscripten.bzl", "emscripten")
 emscripten.toolchain(
     version = "3.1.73",
-    is_default = True
+    is_default = True,
 )
 # emscripten.cache(
 #     lto = True,

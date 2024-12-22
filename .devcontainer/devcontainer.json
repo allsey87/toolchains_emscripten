@@ -8,5 +8,8 @@
             "BazelBuild.vscode-bazel"
          ]
       }
-   }
+   },
+   "runArgs": [
+      "--network=host"
+   ]
 }
