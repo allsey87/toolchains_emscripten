@@ -2,34 +2,27 @@ load(":revisions.bzl", "EMSCRIPTEN_TAGS")
 
 EMSCRIPTEN_URL = "https://storage.googleapis.com/webassembly/emscripten-releases-builds/{}/{}/wasm-binaries{}.{}"
 
-# BINARYEN_ROOT = '{install_dir}'
-# LLVM_ROOT = '{install_dir}' + '/bin'
-# EMSCRIPTEN_ROOT = '{install_dir}' + '/emscripten'
-# CACHE = '{install_dir}' + '/emscripten/cache'
-
 EMSCRIPTEN_CONFIG = """
+import os
+BINARYEN_ROOT = os.path.abspath(os.environ['BZL_BINARYEN_ROOT'])
+LLVM_ROOT = os.path.abspath(os.environ['BZL_LLVM_ROOT'])
+EMSCRIPTEN_ROOT = os.path.abspath(os.environ['BZL_EMSCRIPTEN_ROOT'])
+NODE_JS = os.path.abspath(os.environ['BZL_NODE_JS'])
+CACHE = os.path.abspath(os.environ['BZL_CACHE'])
 FROZEN_CACHE = True
 """
-####
 
 def _emscripten_repository_impl(ctx):
     revision = EMSCRIPTEN_TAGS[ctx.attr.version]
     # TODO support and test other OSes
     # TODO support and test sha256 for other OSes
-    #path = EMSCRIPTEN_URL.format("linux", revision.hash, "", "tar.xz")
-    #ctx.download_and_extract(path, sha256=revision.sha_linux)
+    path = EMSCRIPTEN_URL.format("linux", revision.hash, "", "tar.xz")
+    ctx.download_and_extract(path, sha256=revision.sha_linux)
     # TODO hack to speed up local development
     #ctx.download_and_extract("http://127.0.0.1:8000/wasm-binaries-hack.tar.xz", sha256="8c3f19c7a154f04bcdc744ba1b4264bd17f106512018ec629220ba5c18cec488")
-    ctx.download_and_extract("http://127.0.0.1:8000/wasm-binaries.tar.xz", sha256="4f3bc91cffec9096c3d3ccb11c222e1c2cb7734a0ff9a92d192e171849e68f28")
+    #ctx.download_and_extract("http://127.0.0.1:8000/wasm-binaries.tar.xz", sha256="4f3bc91cffec9096c3d3ccb11c222e1c2cb7734a0ff9a92d192e171849e68f28")
 
-    #print("ctx.path('install') = {}".format(ctx.path('install')))
-
-    #print("XXXX = {}".format(ctx.attr.nodejs.relative("//:emcc")))
-    #install_dir = ctx.path('install')
-
-    # Although we do not set any configuration here, this file needs to exist
-    ctx.file("install/emscripten/.emscripten", "")
-
+    ctx.file("install/emscripten/.emscripten", EMSCRIPTEN_CONFIG)
 
     #ctx.execute(EMBUILDER!)
     # This should pick up the args from the config file, overriding frozen cache so that embuilder can do its thing
@@ -43,10 +36,7 @@ def _emscripten_repository_impl(ctx):
     #
     #     }
     # )
-
-    ctx.template("BUILD.bazel", Label("toolchain.tpl"), substitutions = {
-        #"@@INSTALL_DIR@@": str(install_dir)
-    })
+    ctx.template("BUILD.bazel", Label("toolchain.tpl"))
 
 emscripten_repository = repository_rule(
     _emscripten_repository_impl,
@@ -54,7 +44,6 @@ emscripten_repository = repository_rule(
         "version": attr.string(),
     }
 )
-
 
 def _emscripten_impl(ctx):
     for module in ctx.modules:

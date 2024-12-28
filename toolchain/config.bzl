@@ -48,11 +48,11 @@ all_link_actions = [
 ]
 
 # These rules are included in the bazel-mingw-toolchain but not in the Emscripten toolchain
-lto_index_actions = [
-    ACTION_NAMES.lto_index_for_executable,
-    ACTION_NAMES.lto_index_for_dynamic_library,
-    ACTION_NAMES.lto_index_for_nodeps_dynamic_library,
-]
+# lto_index_actions = [
+#     ACTION_NAMES.lto_index_for_executable,
+#     ACTION_NAMES.lto_index_for_dynamic_library,
+#     ACTION_NAMES.lto_index_for_nodeps_dynamic_library,
+# ]
 
 # These rules are included in the Emscripten toolchain but not in the bazel-mingw-toolchain
 # preprocessor_compile_actions = [
@@ -66,8 +66,6 @@ lto_index_actions = [
 # ]
 
 def _impl(ctx):
-    
-    
     emcc = tool(tool = ctx.executable.emcc)
     action_configs = [
         action_config(
@@ -76,7 +74,7 @@ def _impl(ctx):
         ),
         action_config(
             action_name = ACTION_NAMES.cpp_module_codegen,
-            tools = [emcc]
+            tools = [emcc],
         ),
         action_config(
             action_name = ACTION_NAMES.cpp_module_compile,
@@ -84,23 +82,10 @@ def _impl(ctx):
         ),
         action_config(
             action_name = ACTION_NAMES.cpp_link_executable,
-            tools = [emcc]
+            tools = [emcc],
             #tools = [emcc],
         )
     ]
-
-    # print("ctx.executable.nodejs.path = {}".format(ctx.executable.nodejs.path))
-    # print("ctx.executable.nodejs.root = {}".format(ctx.executable.nodejs.root.path))
-    # print("ctx.executable.nodejs.dirname = {}".format(ctx.executable.nodejs.dirname))
-    # print("ctx.executable.nodejs.short_path = {}".format(ctx.executable.nodejs.short_path))
-    
-    # TODO create a genrule that just writes the location of nodejs to a file?
-
-    # print('ctx.attr.node.label.name = {}'.format(ctx.attr.node.label.name)) # bin/nodejs/bin/node
-    # print('ctx.attr.node.label.package = {}'.format(ctx.attr.node.label.package)) #
-    # print('ctx.attr.node.label.repo_name = {}'.format(ctx.attr.node.label.repo_name)) # rules_nodejs~~node~nodejs_linux_amd64
-    # print('ctx.attr.node.label.workspace_name = {}'.format(ctx.attr.node.label.workspace_name)) # rules_nodejs~~node~nodejs_linux_amd64
-    # print('ctx.attr.node.label.workspace_root = {}'.format(ctx.attr.node.label.workspace_root)) # external/rules_nodejs~~node~nodejs_linux_amd64
 
     # This could be a way to use Embuilder?
     # output = ctx.actions.declare_file("out.txt")
@@ -110,109 +95,76 @@ def _impl(ctx):
     #     arguments = ["aaaa"],
     # )
 
-    # nodejs = ctx.actions.declare_file("xxxnodexxx")
-    # ctx.actions.symlink(
-    #     output = nodejs,
-    #     target_file = ctx.executable.nodejs,
-    #     is_executable= True,
-    # )
-
-
-    # BINARYEN_ROOT = '{install_dir}'
-    # LLVM_ROOT = '{install_dir}' + '/bin'
-    # EMSCRIPTEN_ROOT = '{install_dir}' + '/emscripten'
-    # CACHE = '{install_dir}' + '/emscripten/cache'
-    # FROZEN_CACHE = True
-
-    cxx_builtin_include_directories = [
-        ctx.attr.assets.label.workspace_root + "/install/emscripten/cache/sysroot/include/",
-        ctx.attr.assets.label.workspace_root + "/install/lib/clang/20/include"
+    # Set various configuration paths and parameters for Emscripten. Paths are
+    # relative but are converted to absolute paths via emcc_wrapper.py (generated)
+    env_entries_emscripten = [
+        env_entry(
+            key = "BZL_BINARYEN_ROOT",
+            value = ctx.attr.assets.label.workspace_root + "/install",
+        ),
+        env_entry(
+            key = "BZL_LLVM_ROOT",
+            value = ctx.attr.assets.label.workspace_root + "/install/bin",
+        ),
+        env_entry(
+            key = "BZL_EMSCRIPTEN_ROOT",
+            value = ctx.attr.assets.label.workspace_root + "/install/emscripten",
+        ),
+        env_entry(
+            key = "BZL_CACHE",
+            value = ctx.attr.assets.label.workspace_root + "/install/emscripten/cache",
+        ),
+        env_entry(
+            key = "BZL_NODE_JS",
+            value = ctx.executable.node.path,
+        ),
     ]
 
-    print('1.', ctx.attr.assets.label.workspace_root + "/install/emscripten/cache/sysroot/include/")
-    print('2.', ctx.attr.assets.label.workspace_root + "/install/lib/clang/20/include")
-
+    # default_preprocessor_flags_feature = feature(
+    #     name = "default_preprocessor_flags",
+    #     enabled = True,
+    #     env_sets = [
+    #         env_set(
+    #             actions = all_compile_actions,
+    #             env_entries = env_entries_emscripten,
+    #         )
+    #     ]
+    # )
 
     default_compile_flags_feature = feature(
         name = "default_compile_flags",
         enabled = True,
         env_sets = [
             env_set(
-                actions = all_compile_actions + all_link_actions,
-                env_entries = [
-                    # Ideally this would just be set on the py_binary, however,
-                    # due to the python_zip_file trick, the `env` attribute is lost
-                    
-                    # The main toolchain is using @nodejs//:node_files and is not setting this environment variable.
-                    # check how they are making nodejs available to the toolchain?
-                    env_entry(
-                        key = "EM_BINARYEN_ROOT",
-                        value = ctx.attr.assets.label.workspace_root + "/install",
-                    ),
-                    env_entry(
-                        key = "EM_LLVM_ROOT",
-                        value = ctx.attr.assets.label.workspace_root + "/install/bin",
-                    ),
-                    env_entry(
-                        key = "EM_EMSCRIPTEN_ROOT",
-                        value = ctx.attr.assets.label.workspace_root + "/install/emscripten",
-                    ),
-                    env_entry(
-                        key = "EM_CACHE",
-                        value = ctx.attr.assets.label.workspace_root + "/install/emscripten/cache",
-                    ),
-                    env_entry(
-                        key = "EM_NODE_JS",
-                        value = ctx.executable.node.path,
-                    ),
-                    env_entry(
-                        key = "EM_FROZEN_CACHE",
-                        value = "1",
-                    ),
-                ],
+                actions = all_compile_actions,
+                env_entries = env_entries_emscripten,
             )
         ],
         flag_sets = [
-            # flag_set(
-            #     actions = all_compile_actions,
-            #     flag_groups = ([
-            #         flag_group(
-            #             flags = ctx.attr.compile_flags,
-            #         ),
-            #     ] if ctx.attr.compile_flags else []),
-            # ),
-            # flag_set(
-            #     actions = all_compile_actions,
-            #     flag_groups = ([
-            #         flag_group(
-            #             flags = ctx.attr.dbg_compile_flags,
-            #         ),
-            #     ] if ctx.attr.dbg_compile_flags else []),
-            #     with_features = [with_feature_set(features = ["dbg"])],
-            # ),
-            # flag_set(
-            #     actions = all_compile_actions,
-            #     flag_groups = ([
-            #         flag_group(
-            #             flags = ctx.attr.opt_compile_flags,
-            #         ),
-            #     ] if ctx.attr.opt_compile_flags else []),
-            #     with_features = [with_feature_set(features = ["opt"])],
-            # ),
-            # flag_set(
-            #     actions = all_cpp_compile_actions + [ACTION_NAMES.lto_backend],
-            #     flag_groups = ([
-            #         flag_group(
-            #             flags = ctx.attr.cxx_flags,
-            #         ),
-            #     ] if ctx.attr.cxx_flags else []),
-            # ),
+            flag_set(
+                actions = all_compile_actions,
+                flag_groups = [
+                    flag_group(
+                        flags = [
+                            "-iwithsysroot{}".format("/include/c++/v1"),
+                            "-iwithsysroot{}".format("/include/compat"),
+                            "-iwithsysroot{}".format("/include")
+                        ]
+                    )
+                ]
+            )
         ],
     )
 
     default_link_flags_feature = feature(
         name = "default_link_flags",
         enabled = True,
+        env_sets = [
+            env_set(
+                actions = all_link_actions,
+                env_entries = env_entries_emscripten,
+            )
+        ],
         flag_sets = [
             # flag_set(
             #     actions = all_link_actions + lto_index_actions,
@@ -238,11 +190,42 @@ def _impl(ctx):
 
     opt_feature = feature(name = "opt")
 
+    sysroot_feature = feature(
+        name = "sysroot",
+        enabled = True,
+        flag_sets = [
+            flag_set(
+                actions = [
+                    # TODO does this match one of the groups above?
+                    ACTION_NAMES.c_compile,
+                    ACTION_NAMES.cpp_compile,
+                    ACTION_NAMES.linkstamp_compile,
+                    ACTION_NAMES.assemble,
+                    ACTION_NAMES.preprocess_assemble,
+                    ACTION_NAMES.cpp_header_parsing,
+                    ACTION_NAMES.cpp_module_compile,
+                    ACTION_NAMES.cpp_module_codegen,
+                    ACTION_NAMES.clif_match,
+                    ACTION_NAMES.cpp_link_executable,
+                    ACTION_NAMES.cpp_link_dynamic_library,
+                    ACTION_NAMES.cpp_link_nodeps_dynamic_library,
+                ],
+                flag_groups = [
+                    flag_group(
+                        flags = ["--sysroot=%{sysroot}"],
+                        expand_if_available = "sysroot",
+                    ),
+                ],
+            ),
+        ],
+    )
+
     features = [
-        default_compile_flags_feature,
-        default_link_flags_feature,
         dbg_feature,
         opt_feature,
+        sysroot_feature,
+        default_compile_flags_feature,
+        default_link_flags_feature,
     ]
 
     artifact_name_patterns = [
@@ -258,13 +241,21 @@ def _impl(ctx):
         )
     ]
 
+    builtin_sysroot = ctx.attr.assets.label.workspace_root + "/install/emscripten/cache/sysroot"
+
+    # cxx_builtin_include_directories = [
+    #     #ctx.attr.assets.label.workspace_root + "%sysroot%/include/",
+    #     #ctx.attr.assets.label.workspace_root + "/install/lib/clang/20/include"
+    # ]
+
     return cc_common.create_cc_toolchain_config_info(
         ctx = ctx,
         features = features,
         action_configs = action_configs,
-        cxx_builtin_include_directories = cxx_builtin_include_directories,
+        builtin_sysroot = builtin_sysroot,
+        #cxx_builtin_include_directories = cxx_builtin_include_directories,
         toolchain_identifier = "wasm32-emscripten",
-        host_system_name = "i686-unknown-linux-gnu",
+        #host_system_name = "i686-unknown-linux-gnu",
         target_system_name = "wasm32-unknown-emscripten",
         target_cpu = "wasm32",
         target_libc = "musl/js",
