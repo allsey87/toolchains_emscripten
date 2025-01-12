@@ -255,7 +255,6 @@ def _impl(ctx):
         builtin_sysroot = builtin_sysroot,
         #cxx_builtin_include_directories = cxx_builtin_include_directories,
         toolchain_identifier = "wasm32-emscripten",
-        #host_system_name = "i686-unknown-linux-gnu",
         target_system_name = "wasm32-unknown-emscripten",
         target_cpu = "wasm32",
         target_libc = "musl/js",

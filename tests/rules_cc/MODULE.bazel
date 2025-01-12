@@ -11,11 +11,10 @@ emscripten.toolchain(
     version = "3.1.73",
     is_default = True,
 )
-# emscripten.cache(
-#     lto = True,
-#     pic = True,
-#     targets = ["crtbegin", "crt1_proxy_main"]
-# )
+emscripten.cache(
+    pic = True,
+    targets = ["crtbegin", "crt1_proxy_main"]
+)
 use_repo(emscripten, emscripten_3_1_73 = "emscripten_3_1_73")
 
 register_toolchains("@emscripten_3_1_73//:toolchain")

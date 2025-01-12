@@ -9,11 +9,8 @@ module(
 bazel_dep(name = "platforms", version = "0.0.10")
 bazel_dep(name = "rules_python", version = "0.40.0")
 bazel_dep(name = "rules_nodejs", version = "6.3.2")
-bazel_dep(name = "bazel_skylib", version = "1.7.1")
+bazel_dep(name = "aspect_bazel_lib", version = "2.10.0")
 
 node = use_extension("@rules_nodejs//nodejs:extensions.bzl", "node")
 node.toolchain(node_version = "20.14.0")
 use_repo(node, "nodejs")
-
-# https://github.com/bazel-contrib/rules_nodejs/blob/main/docs/repositories.md
-# @nodejs//:node
