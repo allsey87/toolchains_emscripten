@@ -4,8 +4,8 @@ EMSCRIPTEN_URL = "https://storage.googleapis.com/webassembly/emscripten-releases
 
 # This configuration file converts the relative paths from the BZL_VARIABLE environment variables
 # into absolute paths, which are often needed for Emscripten to work properly. These absolute paths
-# are written back into the environment variables to prevent issues with subprocesses rerunning
-# this script where the current working directory no longer lines up with the definitions of the 
+# are written back into the environment variables to prevent issues with subprocesses re-running
+# this script where the current working directory no longer lines up with the definitions of the
 # BZL_VARIABLE environment variables.
 EMSCRIPTEN_CONFIG = """
 import os

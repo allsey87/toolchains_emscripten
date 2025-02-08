@@ -1,8 +1,6 @@
 "bazel-contrib/toolchains_emscripten/toolchain"
 
 load("@bazel_tools//tools/build_defs/cc:action_names.bzl", "ACTION_NAMES")
-#load("@bazel_skylib//rules/directory:providers.bzl", "DirectoryInfo")
-
 load(
     "@bazel_tools//tools/cpp:cc_toolchain_config_lib.bzl",
     "action_config",
@@ -16,6 +14,8 @@ load(
     "flag_set",
     "with_feature_set",
 )
+
+EmscriptenCacheInfo = provider(doc = "Location of the Emscripten cache", fields = ['path'])
 
 # these groupings of actions come from https://github.com/vvviktor/bazel-mingw-toolchain/
 # but are identical to those in the existing Emscripten toolchain, except where noted below:
@@ -94,9 +94,22 @@ def _impl(ctx):
     #     executable = ctx.executable.nodejs,
     #     arguments = ["aaaa"],
     # )
+    # The reason why this will not work is that 
 
+    ### DEBUG ###
+
+    #print(ctx.attr.cache.label.workspace_root)
+    #print(ctx.attr.cache.label.package)
+    #print(ctx.attr.cache.label.repo_name)
+
+    # print(ctx.files.cache[0].root.path)
+    # print(ctx.files.cache[0].short_path)
+    # print(ctx.files.cache[0].path)
+    # print(ctx.files.cache[0].dirname)
+
+    #print(ctx.attr.cache[EmscriptenCacheInfo].path)
     # Set various configuration paths and parameters for Emscripten. Paths are
-    # relative but are converted to absolute paths via emcc_wrapper.py (generated)
+    # relative but are converted to absolute paths inside of .emscripten_config
     env_entries_emscripten = [
         env_entry(
             key = "BZL_BINARYEN_ROOT",
@@ -112,7 +125,8 @@ def _impl(ctx):
         ),
         env_entry(
             key = "BZL_CACHE",
-            value = ctx.attr.assets.label.workspace_root + "/install/emscripten/cache",
+            value = ctx.files.cache[0].dirname,
+            #value = ""
         ),
         env_entry(
             key = "BZL_NODE_JS",
@@ -241,7 +255,7 @@ def _impl(ctx):
         )
     ]
 
-    builtin_sysroot = ctx.attr.assets.label.workspace_root + "/install/emscripten/cache/sysroot"
+    builtin_sysroot = ctx.files.cache[0].dirname + "/sysroot"
 
     # cxx_builtin_include_directories = [
     #     #ctx.attr.assets.label.workspace_root + "%sysroot%/include/",
@@ -253,7 +267,6 @@ def _impl(ctx):
         features = features,
         action_configs = action_configs,
         builtin_sysroot = builtin_sysroot,
-        #cxx_builtin_include_directories = cxx_builtin_include_directories,
         toolchain_identifier = "wasm32-emscripten",
         target_system_name = "wasm32-unknown-emscripten",
         target_cpu = "wasm32",
@@ -278,6 +291,7 @@ emscripten_toolchain_config = rule(
         #"install_dir": attr.string(mandatory = True),
         # these are needed for emscripten config
         "assets": attr.label(mandatory = True, cfg = "exec"), # TODO is this cfg attribute necessary?
+        "cache": attr.label(mandatory = True, cfg = "exec", providers = [EmscriptenCacheInfo]), # TODO is this cfg attribute necessary?
         # "node_modules": attr.label(mandatory = True, cfg = "exec"),
         # "llvm_root": attr.label(mandatory = True, cfg = "exec"),
         "node": attr.label(mandatory = True, executable = True, allow_files = True, cfg = "exec"),
@@ -301,4 +315,45 @@ emscripten_toolchain_config = rule(
         # "unfiltered_compile_flags": attr.string_list(),
     },
     provides = [CcToolchainConfigInfo],
+)
+
+#################################################
+
+#load("@aspect_bazel_lib//lib:run_binary.bzl", "run_binary")
+
+def _emscripten_combine_cache_impl(ctx):
+    cache = []
+    
+    for prebuilt_asset in ctx.attr.prebuilt_cache.files.to_list():
+        prebuilt_asset_link = ctx.actions.declare_file(prebuilt_asset.path)
+        ctx.actions.symlink(output=prebuilt_asset_link, target_file=prebuilt_asset)
+        cache.append(prebuilt_asset_link)
+    
+    # Note: for some reason, the prebuilt cache must be added to `cache` first. It is unclear why, but if this
+    # is not the case, the cache is directory is wrong (debug with print in .emscripten_config)
+    for generated_asset in ctx.attr.generated_cache.files.to_list():
+        generated_asset_link = ctx.actions.declare_file(generated_asset.path.removeprefix(generated_asset.root.path + "/"))
+        ctx.actions.symlink(output=generated_asset_link, target_file=generated_asset)
+        cache.append(generated_asset_link)    
+    
+    return [
+        DefaultInfo(files = depset(cache)),
+        EmscriptenCacheInfo(path = ctx.genfiles_dir.path) # this gives me bazel-out/k8-opt-exec-ST-d57f47055a04/bin
+    ]
+
+emscripten_combine_cache = rule(
+    implementation = _emscripten_combine_cache_impl,
+    # These attributes are available in the _impl function above under ctx. IMPORTANT:
+    # NOTE: that when passing labels into this function, e.g.:
+    # "emscripten_binaries": attr.label(mandatory = True, cfg = "exec"),
+    # it is possible to set the exec configuration. This is important for transitioning
+    # between host and exec configurations.
+    # Here I can specify which arguments are mandatory, their types, and default values
+
+    attrs = {
+        # can this be a list of labels, i.e., can I just pass the output of glob into here?
+        "prebuilt_cache": attr.label(mandatory = True, cfg = "exec"), # TODO is this cfg attribute necessary?
+        "generated_cache": attr.label(mandatory = True, cfg = "exec"), # TODO is this cfg attribute necessary?
+    },
+    provides = [DefaultInfo, EmscriptenCacheInfo],
 )

@@ -1,15 +1,21 @@
 ""
 
 load("@rules_python//python:defs.bzl", "py_binary")
-load("@toolchains_emscripten//toolchain:config.bzl", "emscripten_toolchain_config")
+load("@toolchains_emscripten//toolchain:config.bzl", "emscripten_toolchain_config", "emscripten_combine_cache")
 load("@aspect_bazel_lib//lib:run_binary.bzl", "run_binary")
 
 filegroup(
     name = "assets",
     srcs = glob([
         "install/bin/**/*",
-        "install/emscripten/cache/**/*",
         "install/emscripten/node_modules/**/*"
+    ])
+)
+
+filegroup(
+    name = "prebuilt_cache",
+    srcs = glob([
+        "install/emscripten/cache/**/*",
     ])
 )
 
@@ -52,15 +58,23 @@ py_binary(
 run_binary(
     name = "generate_cache",
     tool = ":embuilder",
-    args = ["--pic", "build", "crt1"],
+    args = ["--pic", "build", "crt1", "libstandalonewasm-nocatch", "libstubs-debug", "libc-debug", "libdlmalloc", "libcompiler_rt", "libsockets"],
     # NOTE I need to merge this output with the prebuilt cache and pass it to the toolchain
-    outs = ["cache/sysroot/lib/wasm32-emscripten/pic/crt1.o"],
+    outs = [
+        "install/emscripten/cache/sysroot/lib/wasm32-emscripten/pic/crt1.o",
+        "install/emscripten/cache/sysroot/lib/wasm32-emscripten/pic/libstandalonewasm-nocatch.a",
+        "install/emscripten/cache/sysroot/lib/wasm32-emscripten/pic/libstubs-debug.a",
+        "install/emscripten/cache/sysroot/lib/wasm32-emscripten/pic/libc-debug.a",
+        "install/emscripten/cache/sysroot/lib/wasm32-emscripten/pic/libdlmalloc.a",
+        "install/emscripten/cache/sysroot/lib/wasm32-emscripten/pic/libcompiler_rt.a",
+        "install/emscripten/cache/sysroot/lib/wasm32-emscripten/pic/libsockets.a",
+    ],
     env = {
         "BZL_BINARYEN_ROOT": "@@INSTALL_DIR@@",
         "BZL_LLVM_ROOT":"@@INSTALL_DIR@@/bin",
         "BZL_EMSCRIPTEN_ROOT": "@@INSTALL_DIR@@/emscripten",
         "BZL_NODE_JS": "/bin/false",
-        "BZL_CACHE": "$(RULEDIR)/cache",
+        "BZL_CACHE": "$(RULEDIR)/install/emscripten/cache",
         "EM_IGNORE_SANITY": "1",
         "EM_FROZEN_CACHE": "0",
     },
@@ -68,7 +82,6 @@ run_binary(
     mnemonic = "EmscriptenCacheGenerate"
 )
 
-### emcc ###
 py_binary(
     name = "emcc",
     deps = [":emscripten"],
@@ -89,9 +102,19 @@ genrule(
   executable = True,
 )
 
+emscripten_combine_cache(
+    name = "cache",
+    prebuilt_cache = ":prebuilt_cache",
+    generated_cache = ":generate_cache"
+)
+
+# this is just a simple rule that returns a CcToolchainConfigInfo
+# only thing this is doing with :cache and :assets is setting up the environment variables like BZL_CACHE
+# the actual making-available of these files occurs via the cc_toolchain options below
 emscripten_toolchain_config(
     name = "emscripten_toolchain_config",
     assets = ":assets",
+    cache = ":cache",
     emcc = ":emcc_zip_executable",
     node = "@nodejs//:node_bin",
 )
@@ -101,14 +124,15 @@ filegroup(
 )
 filegroup(
     name = "compiler_files",
-    srcs = [":emcc_zip_executable", "@nodejs//:node_bin", ":assets"]
+    srcs = [":emcc_zip_executable", "@nodejs//:node_bin", ":assets", ":cache"]
 )
 filegroup(
     name = "linker_files",
     # NOTE assets only contains the prebuilt cache and not the generated PIC version of crt1.o
-    srcs = [":emcc_zip_executable", "@nodejs//:node_bin", ":assets"]
+    srcs = [":emcc_zip_executable", "@nodejs//:node_bin", ":assets", ":cache"]
 )
 
+# I think all_files, compiler_files etc. just require the DefaultInfo provider (file) since no other provider is specified
 cc_toolchain(
     name = "emscripten_cc_toolchain",
     all_files = ":empty",
@@ -117,7 +141,7 @@ cc_toolchain(
     linker_files = ":linker_files",
     objcopy_files = ":empty",
     strip_files = ":empty",
-    toolchain_config = ":emscripten_toolchain_config",
+    toolchain_config = ":emscripten_toolchain_config", # this input requires the CcToolchainConfigInfo provider
 )
 
 toolchain(

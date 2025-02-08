@@ -4,7 +4,7 @@ cc_binary(
     name = "hello-world",
     srcs = ["hello-world.cc"],
     # both of these work
-    linkopts = ["-sMAIN_MODULE"],
+    linkopts = ["-sSTRICT", "-sMAIN_MODULE"],
     copts = ["-fPIC"]
 )
 
