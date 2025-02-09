@@ -13,7 +13,28 @@ emscripten.toolchain(
 )
 emscripten.cache(
     pic = True,
-    targets = ["crtbegin", "crt1_proxy_main"]
+    targets = [
+        "crt1",
+        "libstandalonewasm-nocatch",
+        "libstubs-debug",
+        "libc-debug",
+        "libdlmalloc",
+        "libcompiler_rt",
+        "libsockets"
+    ]
+)
+emscripten.cache(
+    lto = True,
+    wasm64 = True,
+    targets = [
+        "crt1",
+        "libstandalonewasm-nocatch",
+        "libstubs-debug",
+        "libc-debug",
+        "libdlmalloc",
+        "libcompiler_rt",
+        "libsockets"
+    ]
 )
 use_repo(emscripten, emscripten_3_1_73 = "emscripten_3_1_73")
 

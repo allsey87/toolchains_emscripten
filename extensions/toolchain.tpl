@@ -4,6 +4,8 @@ load("@rules_python//python:defs.bzl", "py_binary")
 load("@toolchains_emscripten//toolchain:config.bzl", "emscripten_toolchain_config", "emscripten_combine_cache")
 load("@aspect_bazel_lib//lib:run_binary.bzl", "run_binary")
 
+load("//:repo_config.bzl", "install_dir", "embuilder_invocations")
+
 filegroup(
     name = "assets",
     srcs = glob([
@@ -52,34 +54,34 @@ py_binary(
     main = "install/emscripten/embuilder.py",
 )
 
-# NOTE I could use list comprehension here to create N instances of this rule for each invocation
-# However, this would probably be inefficient since the cache is always locked and it requires
-# a lot of starting and stopping
-run_binary(
+[
+    run_binary(
+        name = "generate_cache{}".format("".join(arguments).replace("-", "_")),
+        tool = ":embuilder",
+        args = arguments + ["build"] + targets,
+        outs = [
+            "install/emscripten/cache/sysroot/lib/" + cache_suffix + target + (
+                ".a" if target.startswith("lib") else ".o"
+            ) for target in targets
+        ],
+        env = {
+            "BZL_BINARYEN_ROOT": install_dir,
+            "BZL_LLVM_ROOT": install_dir + "/bin",
+            "BZL_EMSCRIPTEN_ROOT": install_dir + "/emscripten",
+            "BZL_NODE_JS": "/bin/false",
+            "BZL_CACHE": "$(RULEDIR)/install/emscripten/cache",
+            "EM_IGNORE_SANITY": "1",
+            "EM_FROZEN_CACHE": "0",
+        },
+        progress_message = "Generating Emscripten cache",
+        mnemonic = "EmscriptenCacheGenerate"
+    )
+    for arguments, cache_suffix, targets in embuilder_invocations
+]
+
+alias(
     name = "generate_cache",
-    tool = ":embuilder",
-    args = ["--pic", "build", "crt1", "libstandalonewasm-nocatch", "libstubs-debug", "libc-debug", "libdlmalloc", "libcompiler_rt", "libsockets"],
-    # NOTE I need to merge this output with the prebuilt cache and pass it to the toolchain
-    outs = [
-        "install/emscripten/cache/sysroot/lib/wasm32-emscripten/pic/crt1.o",
-        "install/emscripten/cache/sysroot/lib/wasm32-emscripten/pic/libstandalonewasm-nocatch.a",
-        "install/emscripten/cache/sysroot/lib/wasm32-emscripten/pic/libstubs-debug.a",
-        "install/emscripten/cache/sysroot/lib/wasm32-emscripten/pic/libc-debug.a",
-        "install/emscripten/cache/sysroot/lib/wasm32-emscripten/pic/libdlmalloc.a",
-        "install/emscripten/cache/sysroot/lib/wasm32-emscripten/pic/libcompiler_rt.a",
-        "install/emscripten/cache/sysroot/lib/wasm32-emscripten/pic/libsockets.a",
-    ],
-    env = {
-        "BZL_BINARYEN_ROOT": "@@INSTALL_DIR@@",
-        "BZL_LLVM_ROOT":"@@INSTALL_DIR@@/bin",
-        "BZL_EMSCRIPTEN_ROOT": "@@INSTALL_DIR@@/emscripten",
-        "BZL_NODE_JS": "/bin/false",
-        "BZL_CACHE": "$(RULEDIR)/install/emscripten/cache",
-        "EM_IGNORE_SANITY": "1",
-        "EM_FROZEN_CACHE": "0",
-    },
-    progress_message = "Generating Emscripten cache",
-    mnemonic = "EmscriptenCacheGenerate"
+    actual = "generate_cache__pic"
 )
 
 py_binary(
@@ -105,7 +107,7 @@ genrule(
 emscripten_combine_cache(
     name = "cache",
     prebuilt_cache = ":prebuilt_cache",
-    generated_cache = ":generate_cache"
+    generated_cache = ":generate_cache" #s
 )
 
 # this is just a simple rule that returns a CcToolchainConfigInfo
