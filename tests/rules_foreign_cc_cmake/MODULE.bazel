@@ -1,0 +1,20 @@
+"bazel-contrib/toolchains_emscripten/tests/rules_foreign_cc_cmake"
+
+bazel_dep(name = "toolchains_emscripten", version = "0.0.0")
+local_path_override(
+    module_name = "toolchains_emscripten",
+    path = "../.."
+)
+bazel_dep(name = "rules_foreign_cc", version = "0.14.0")
+
+emscripten = use_extension("@toolchains_emscripten//extensions:emscripten.bzl", "emscripten")
+emscripten.toolchain(
+    version = "3.1.73",
+    is_default = True,
+)
+use_repo(emscripten, emscripten_3_1_73 = "emscripten_3_1_73")
+
+register_toolchains("@emscripten_3_1_73//:toolchain")
+# it might make sense to export emscripten_cc_binary, emscripten_cc_library etc
+# for each exported toolchain, however, it is unclear how this would work with
+# build systems

@@ -1,11 +1,10 @@
 load("@rules_cc//cc:defs.bzl", "cc_binary")
 
 cc_binary(
-    name = "hello-world",
-    srcs = ["hello-world.cc"],
+    name = "test_binary",
+    srcs = ["src/test.cc"],
     # both of these work
+    # TODO move cache generate into a seperate test
     linkopts = ["-sSTRICT", "-sMAIN_MODULE"],
     copts = ["-fPIC"]
 )
-
-# bazel build --platforms=@toolchains_emscripten//platform:wasm32-emscripten //:hello-world
