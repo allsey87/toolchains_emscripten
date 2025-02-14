@@ -79,11 +79,6 @@ py_binary(
     for arguments, cache_suffix, targets in embuilder_invocations
 ]
 
-alias(
-    name = "generate_cache",
-    actual = "generate_cache__pic"
-)
-
 py_binary(
     name = "emcc",
     deps = [":emscripten"],
@@ -107,7 +102,10 @@ genrule(
 emscripten_combine_cache(
     name = "cache",
     prebuilt_cache = ":prebuilt_cache",
-    generated_cache = ":generate_cache" #s
+    generated_caches = [
+        "generate_cache{}".format("".join(arguments).replace("-", "_"))
+        for arguments, _, _ in embuilder_invocations
+    ]
 )
 
 # this is just a simple rule that returns a CcToolchainConfigInfo

@@ -23,19 +23,24 @@ emscripten.cache(
         "libsockets"
     ]
 )
-emscripten.cache(
-    lto = True,
-    wasm64 = True,
-    targets = [
-        "crt1",
-        "libstandalonewasm-nocatch",
-        "libstubs-debug",
-        "libc-debug",
-        "libdlmalloc",
-        "libcompiler_rt",
-        "libsockets"
-    ]
-)
+
+# NOTE the cache can be inspected with:
+# bazel build --platforms=@toolchains_emscripten//platform:wasm32-emscripten @emscripten_3_1_73//:cache
+# TODO add a multiple caches test
+
+# emscripten.cache(
+#     lto = True,
+#     wasm64 = True,
+#     targets = [
+#         "crt1",
+#         "libstandalonewasm-nocatch",
+#         "libstubs-debug",
+#         "libc-debug",
+#         "libdlmalloc",
+#         "libcompiler_rt",
+#         "libsockets"
+#     ]
+# )
 use_repo(emscripten, emscripten_3_1_73 = "emscripten_3_1_73")
 
 register_toolchains("@emscripten_3_1_73//:toolchain")

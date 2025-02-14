@@ -317,10 +317,6 @@ emscripten_toolchain_config = rule(
     provides = [CcToolchainConfigInfo],
 )
 
-#################################################
-
-#load("@aspect_bazel_lib//lib:run_binary.bzl", "run_binary")
-
 def _emscripten_combine_cache_impl(ctx):
     cache = []
     
@@ -331,29 +327,22 @@ def _emscripten_combine_cache_impl(ctx):
     
     # Note: for some reason, the prebuilt cache must be added to `cache` first. It is unclear why, but if this
     # is not the case, the cache is directory is wrong (debug with print in .emscripten_config)
-    for generated_asset in ctx.attr.generated_cache.files.to_list():
-        generated_asset_link = ctx.actions.declare_file(generated_asset.path.removeprefix(generated_asset.root.path + "/"))
-        ctx.actions.symlink(output=generated_asset_link, target_file=generated_asset)
-        cache.append(generated_asset_link)    
+    for generated_cache in ctx.attr.generated_caches:
+        for generated_asset in generated_cache.files.to_list():
+            generated_asset_link = ctx.actions.declare_file(generated_asset.path.removeprefix(generated_asset.root.path + "/"))
+            ctx.actions.symlink(output=generated_asset_link, target_file=generated_asset)
+            cache.append(generated_asset_link)    
     
     return [
         DefaultInfo(files = depset(cache)),
-        EmscriptenCacheInfo(path = ctx.genfiles_dir.path) # this gives me bazel-out/k8-opt-exec-ST-d57f47055a04/bin
+        EmscriptenCacheInfo(path = ctx.genfiles_dir.path)
     ]
 
 emscripten_combine_cache = rule(
     implementation = _emscripten_combine_cache_impl,
-    # These attributes are available in the _impl function above under ctx. IMPORTANT:
-    # NOTE: that when passing labels into this function, e.g.:
-    # "emscripten_binaries": attr.label(mandatory = True, cfg = "exec"),
-    # it is possible to set the exec configuration. This is important for transitioning
-    # between host and exec configurations.
-    # Here I can specify which arguments are mandatory, their types, and default values
-
     attrs = {
-        # can this be a list of labels, i.e., can I just pass the output of glob into here?
-        "prebuilt_cache": attr.label(mandatory = True, cfg = "exec"), # TODO is this cfg attribute necessary?
-        "generated_cache": attr.label(mandatory = True, cfg = "exec"), # TODO is this cfg attribute necessary?
+        "prebuilt_cache": attr.label(mandatory = True, cfg = "exec"),
+        "generated_caches": attr.label_list(cfg = "exec"),
     },
     provides = [DefaultInfo, EmscriptenCacheInfo],
 )
