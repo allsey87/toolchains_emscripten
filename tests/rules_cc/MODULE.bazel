@@ -1,5 +1,8 @@
 "bazel-contrib/toolchains_emscripten/tests/rules_cc"
+module(name = "rules_cc_integration_tests", version = "0.0.0", compatibility_level = 1)
 
+bazel_dep(name = "rules_cc", version = "0.1.1")
+bazel_dep(name = "aspect_rules_js", version = "2.1.3")
 bazel_dep(name = "toolchains_emscripten", version = "0.0.0")
 local_path_override(
     module_name = "toolchains_emscripten",

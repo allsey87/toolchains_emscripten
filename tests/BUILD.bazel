@@ -1,0 +1,6 @@
+test_suite(
+    name = "foreign_cc_tests",
+    tests = [
+        "@rules_cc_integration_tests//:validate",
+    ]
+)

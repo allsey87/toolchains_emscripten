@@ -14,3 +14,9 @@ bazel_dep(name = "aspect_bazel_lib", version = "2.10.0")
 node = use_extension("@rules_nodejs//nodejs:extensions.bzl", "node")
 node.toolchain(node_version = "20.14.0")
 use_repo(node, "nodejs")
+
+bazel_dep(name = "rules_cc_integration_tests", dev_dependency = True)
+local_path_override(
+    module_name = "rules_cc_integration_tests",
+    path = "tests/rules_cc"
+)
