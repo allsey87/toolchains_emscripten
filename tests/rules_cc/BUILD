@@ -4,18 +4,13 @@ load("@rules_cc//cc:defs.bzl", "cc_binary")
 cc_binary(
     name = "test_binary",
     srcs = ["src/test.cc"],
-    # both of these work
-    # TODO move cache generate into a seperate test
-    linkopts = ["-sSTRICT", "-sMAIN_MODULE"],
+    linkopts = ["-sSTRICT", "-sMAIN_MODULE", "-sSINGLE_FILE"],
     copts = ["-fPIC"]
 )
 
-# https://github.com/aspect-build/rules_js/blob/main/docs/js_binary.md#js_test
-
 js_test(
     name = "validate",
-    entry_point = "main.js",
-    data = [
-        ":test_binary"
-    ],
+    entry_point = "test_binary",
+    data = [":test_binary"],
+    timeout="short",
 )

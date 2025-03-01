@@ -99,6 +99,27 @@ genrule(
   executable = True,
 )
 
+py_binary(
+    name = "empp",
+    deps = [":emscripten"],
+    srcs = ["install/emscripten/em++.py"],
+    main = "install/emscripten/em++.py",
+)
+filegroup(
+  name = "empp_zip",
+  srcs = [":empp"],
+  output_group = "python_zip_file",
+)
+genrule(
+  name = "empp_zip_executable",
+  srcs = [":empp_zip"],
+  outs = ["empp_zip_executable.zip"],
+  # TODO add a cmd_ps: on Windows this should just be a no-op
+  cmd_bash = "echo '#!/usr/bin/env python3' | cat - $< >$@",
+  executable = True,
+)
+
+
 emscripten_combine_cache(
     name = "cache",
     prebuilt_cache = ":prebuilt_cache",
@@ -116,6 +137,7 @@ emscripten_toolchain_config(
     assets = ":assets",
     cache = ":cache",
     emcc = ":emcc_zip_executable",
+    empp = ":empp_zip_executable",
     node = "@nodejs//:node_bin",
 )
 
@@ -124,12 +146,12 @@ filegroup(
 )
 filegroup(
     name = "compiler_files",
-    srcs = [":emcc_zip_executable", "@nodejs//:node_bin", ":assets", ":cache"]
+    srcs = [":emcc_zip_executable", ":empp_zip_executable", "@nodejs//:node_bin", ":assets", ":cache"]
 )
 filegroup(
     name = "linker_files",
     # NOTE assets only contains the prebuilt cache and not the generated PIC version of crt1.o
-    srcs = [":emcc_zip_executable", "@nodejs//:node_bin", ":assets", ":cache"]
+    srcs = [":emcc_zip_executable", ":empp_zip_executable", "@nodejs//:node_bin", ":assets", ":cache"]
 )
 
 # I think all_files, compiler_files etc. just require the DefaultInfo provider (file) since no other provider is specified

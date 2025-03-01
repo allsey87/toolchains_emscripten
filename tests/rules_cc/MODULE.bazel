@@ -17,13 +17,14 @@ emscripten.toolchain(
 emscripten.cache(
     pic = True,
     targets = [
-        "crt1",
-        "libstandalonewasm-nocatch",
         "libstubs-debug",
+        "libnoexit",
         "libc-debug",
         "libdlmalloc",
         "libcompiler_rt",
-        "libsockets"
+        "libc++-noexcept",
+        "libc++abi-debug-noexcept",
+        "libsockets",
     ]
 )
 

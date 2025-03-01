@@ -24,8 +24,6 @@ os.environ.update(
 )
 """
 
-
-
 REPO_CONFIG_BZL = """
 install_dir = "{install_dir}"
 embuilder_invocations = [{invocations}]
@@ -39,7 +37,7 @@ def _emscripten_repository_impl(repository_ctx):
     #repository_ctx.download_and_extract(path, sha256=revision.sha_linux)
     # TODO hack to speed up local development
     #repository_ctx.download_and_extract("http://127.0.0.1:8000/wasm-binaries-hack.tar.xz", sha256="8c3f19c7a154f04bcdc744ba1b4264bd17f106512018ec629220ba5c18cec488")
-    repository_ctx.download_and_extract("http://127.0.0.1:8000/wasm-binaries.tar.xz", sha256="4f3bc91cffec9096c3d3ccb11c222e1c2cb7734a0ff9a92d192e171849e68f28")
+    repository_ctx.download_and_extract("http://127.0.0.1:8000/wasm-binaries.tar.xz", sha256="7f47e5730c030ae193dbffd102187405d08aae0933c26258512c53d967ef8239")
 
     # Helper functions for embuilder configuration and outputs
     def cache_suffix(invocation):

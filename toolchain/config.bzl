@@ -67,24 +67,28 @@ all_link_actions = [
 
 def _impl(ctx):
     emcc = tool(tool = ctx.executable.emcc)
+    empp = tool(tool = ctx.executable.empp)
     action_configs = [
         action_config(
-            action_name = ACTION_NAMES.cpp_compile,
+            action_name = ACTION_NAMES.c_compile,
             tools = [emcc],
+        ),
+        action_config(
+            action_name = ACTION_NAMES.cpp_compile,
+            tools = [empp],
         ),
         action_config(
             action_name = ACTION_NAMES.cpp_module_codegen,
-            tools = [emcc],
+            tools = [empp],
         ),
         action_config(
             action_name = ACTION_NAMES.cpp_module_compile,
-            tools = [emcc],
+            tools = [empp],
         ),
         action_config(
             action_name = ACTION_NAMES.cpp_link_executable,
-            tools = [emcc],
-            #tools = [emcc],
-        )
+            tools = [empp],
+        ),
     ]
 
     # This could be a way to use Embuilder?
@@ -245,8 +249,8 @@ def _impl(ctx):
     artifact_name_patterns = [
         artifact_name_pattern(
             category_name = "executable",
-            prefix = "",
-            extension = ".wasm",
+            prefix = None,
+            extension = None,
         ),
         artifact_name_pattern(
             category_name = "dynamic_library",
@@ -288,6 +292,7 @@ emscripten_toolchain_config = rule(
 
     attrs = {
         "emcc": attr.label(mandatory = True, executable = True, allow_files = True, cfg = "exec"),
+        "empp": attr.label(mandatory = True, executable = True, allow_files = True, cfg = "exec"),
         #"install_dir": attr.string(mandatory = True),
         # these are needed for emscripten config
         "assets": attr.label(mandatory = True, cfg = "exec"), # TODO is this cfg attribute necessary?
@@ -319,20 +324,17 @@ emscripten_toolchain_config = rule(
 
 def _emscripten_combine_cache_impl(ctx):
     cache = []
-    
     for prebuilt_asset in ctx.attr.prebuilt_cache.files.to_list():
         prebuilt_asset_link = ctx.actions.declare_file(prebuilt_asset.path)
         ctx.actions.symlink(output=prebuilt_asset_link, target_file=prebuilt_asset)
         cache.append(prebuilt_asset_link)
-    
     # Note: for some reason, the prebuilt cache must be added to `cache` first. It is unclear why, but if this
     # is not the case, the cache is directory is wrong (debug with print in .emscripten_config)
     for generated_cache in ctx.attr.generated_caches:
         for generated_asset in generated_cache.files.to_list():
             generated_asset_link = ctx.actions.declare_file(generated_asset.path.removeprefix(generated_asset.root.path + "/"))
             ctx.actions.symlink(output=generated_asset_link, target_file=generated_asset)
-            cache.append(generated_asset_link)    
-    
+            cache.append(generated_asset_link)
     return [
         DefaultInfo(files = depset(cache)),
         EmscriptenCacheInfo(path = ctx.genfiles_dir.path)
