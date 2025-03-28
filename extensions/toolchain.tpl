@@ -145,22 +145,17 @@ filegroup(
     name = "empty",
 )
 filegroup(
-    name = "compiler_files",
-    srcs = [":emcc_zip_executable", ":empp_zip_executable", "@nodejs//:node_bin", ":assets", ":cache"]
-)
-filegroup(
-    name = "linker_files",
-    # NOTE assets only contains the prebuilt cache and not the generated PIC version of crt1.o
+    name = "toolchain_files",
     srcs = [":emcc_zip_executable", ":empp_zip_executable", "@nodejs//:node_bin", ":assets", ":cache"]
 )
 
 # I think all_files, compiler_files etc. just require the DefaultInfo provider (file) since no other provider is specified
 cc_toolchain(
     name = "emscripten_cc_toolchain",
-    all_files = ":empty",
-    compiler_files = ":compiler_files",
+    all_files = ":toolchain_files",
+    compiler_files = ":toolchain_files",
     dwp_files = ":empty",
-    linker_files = ":linker_files",
+    linker_files = ":toolchain_files",
     objcopy_files = ":empty",
     strip_files = ":empty",
     toolchain_config = ":emscripten_toolchain_config", # this input requires the CcToolchainConfigInfo provider
