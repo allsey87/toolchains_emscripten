@@ -1,9 +1,9 @@
-FROM debian:bookworm-slim
+FROM debian:trixie-slim
 ENV SHELL /bin/bash
 ARG user_id=1000
 ARG group_id=1000
-ARG bazel_version=7.2.1
-ARG buildifier_version=7.1.2
+ARG bazel_version=7.6.1
+ARG buildifier_version=7.3.1
 
 RUN apt-get update && apt-get install --assume-yes --no-install-recommends \
     automake \
@@ -13,11 +13,17 @@ RUN apt-get update && apt-get install --assume-yes --no-install-recommends \
     git \
     libtool-bin \
     libltdl-dev \
+    locales-all \
     nano \
     openssh-client \
     python3 \
     sudo \
     && rm -rf /var/lib/apt/lists/*
+
+# Configure locale
+ENV LC_ALL en_US.UTF-8
+ENV LANG en_US.UTF-8
+ENV LANGUAGE en_US.UTF-8
 
 # Download Bazel
 WORKDIR /tmp
