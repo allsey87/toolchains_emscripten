@@ -1,3 +1,4 @@
 build \
     --incompatible_enable_cc_toolchain_resolution \
+    --experimental_platform_in_output_dir \
     --platforms=@toolchains_emscripten//platform:wasm32-emscripten

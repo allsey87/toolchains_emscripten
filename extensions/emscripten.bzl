@@ -7,21 +7,32 @@ EMSCRIPTEN_URL = "https://storage.googleapis.com/webassembly/emscripten-releases
 # are written back into the environment variables to prevent issues with subprocesses re-running
 # this script where the current working directory no longer lines up with the definitions of the
 # BZL_VARIABLE environment variables.
+
+# Checking EXT_BUILD_ROOT is for rules_foreign_cc which does not execute the compiler in the Bazel
+# build root. Unfortunately this environment variable is not available when using rules_cc. This
+# is getting quite hacky so it would be good to find a more robust solution to this problem.
 EMSCRIPTEN_CONFIG = """
 import os
 FROZEN_CACHE = True
-CACHE = os.path.abspath(os.environ['BZL_CACHE'])
-BINARYEN_ROOT = os.path.abspath(os.environ['BZL_BINARYEN_ROOT'])
-LLVM_ROOT = os.path.abspath(os.environ['BZL_LLVM_ROOT'])
-EMSCRIPTEN_ROOT = os.path.abspath(os.environ['BZL_EMSCRIPTEN_ROOT'])
-NODE_JS = os.path.abspath(os.environ['BZL_NODE_JS'])
-os.environ.update(
-    BZL_CACHE = CACHE,
-    BZL_BINARYEN_ROOT = BINARYEN_ROOT,
-    BZL_LLVM_ROOT = LLVM_ROOT,
-    BZL_EMSCRIPTEN_ROOT = EMSCRIPTEN_ROOT,
-    BZL_NODE_JS = NODE_JS
-)
+if os.environ.get('EXT_BUILD_ROOT'):
+    CACHE = os.path.join(os.environ['EXT_BUILD_ROOT'], os.environ['BZL_CACHE'])
+    BINARYEN_ROOT = os.path.join(os.environ['EXT_BUILD_ROOT'], os.environ['BZL_BINARYEN_ROOT'])
+    LLVM_ROOT = os.path.join(os.environ['EXT_BUILD_ROOT'], os.environ['BZL_LLVM_ROOT'])
+    EMSCRIPTEN_ROOT = os.path.join(os.environ['EXT_BUILD_ROOT'], os.environ['BZL_EMSCRIPTEN_ROOT'])
+    NODE_JS = os.path.join(os.environ['EXT_BUILD_ROOT'], os.environ['BZL_NODE_JS'])
+else:
+    CACHE = os.path.abspath(os.environ['BZL_CACHE'])
+    BINARYEN_ROOT = os.path.abspath(os.environ['BZL_BINARYEN_ROOT'])
+    LLVM_ROOT = os.path.abspath(os.environ['BZL_LLVM_ROOT'])
+    EMSCRIPTEN_ROOT = os.path.abspath(os.environ['BZL_EMSCRIPTEN_ROOT'])
+    NODE_JS = os.path.abspath(os.environ['BZL_NODE_JS'])
+    os.environ.update(
+        BZL_CACHE = CACHE,
+        BZL_BINARYEN_ROOT = BINARYEN_ROOT,
+        BZL_LLVM_ROOT = LLVM_ROOT,
+        BZL_EMSCRIPTEN_ROOT = EMSCRIPTEN_ROOT,
+        BZL_NODE_JS = NODE_JS
+    )
 """
 
 REPO_CONFIG_BZL = """
@@ -37,7 +48,7 @@ def _emscripten_repository_impl(repository_ctx):
     #repository_ctx.download_and_extract(path, sha256=revision.sha_linux)
     # TODO hack to speed up local development
     #repository_ctx.download_and_extract("http://127.0.0.1:8000/wasm-binaries-hack.tar.xz", sha256="8c3f19c7a154f04bcdc744ba1b4264bd17f106512018ec629220ba5c18cec488")
-    repository_ctx.download_and_extract("http://127.0.0.1:8000/wasm-binaries.tar.xz", sha256="7f47e5730c030ae193dbffd102187405d08aae0933c26258512c53d967ef8239")
+    repository_ctx.download_and_extract("http://127.0.0.1:8000/wasm-binaries.tar.xz", sha256="c2af924458e56b65ec407f9f8665319351671c56b5854a73fa8b8d8cc7bdf0e5")
 
     # Helper functions for embuilder configuration and outputs
     def cache_suffix(invocation):
@@ -102,7 +113,9 @@ emscripten_repository = repository_rule(
 def _emscripten_impl(ctx):
     for module in ctx.modules:
         if len(module.tags.toolchain) != 1:
-            # TODO perhaps this limitation can be lifted at some point
+            # NOTE reasons for this limitation are that toolchain repo needs
+            # have multiple cache invocations for different combinations of
+            # LTO PIC etc
             fail("Exactly one toolchain for Emscripten must be specified")
         version = module.tags.toolchain[0].version
         emscripten_repository(

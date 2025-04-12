@@ -1,53 +1,43 @@
 "bazel-contrib/toolchains_emscripten/tests/rules_cc"
-module(name = "rules_cc_integration_tests", version = "0.0.0", compatibility_level = 1)
+module(name = "toolchains_emscripten_integration_tests", version = "0.0.0", compatibility_level = 1)
 
 bazel_dep(name = "rules_cc", version = "0.1.1")
+bazel_dep(name = "rules_foreign_cc", version = "0.14.0")
+# TODO REMOVE THIS AFTER DEBUGGING
+local_path_override(
+    module_name = "rules_foreign_cc",
+    path = "rules_foreign_cc"
+)
+
 bazel_dep(name = "aspect_rules_js", version = "2.1.3")
 bazel_dep(name = "toolchains_emscripten", version = "0.0.0")
 local_path_override(
     module_name = "toolchains_emscripten",
-    path = "../.."
+    path = ".."
 )
 
 emscripten = use_extension("@toolchains_emscripten//extensions:emscripten.bzl", "emscripten")
-emscripten.toolchain(
-    version = "3.1.73",
-    is_default = True,
-)
-emscripten.cache(
-    pic = True,
-    targets = [
-        "libstubs-debug",
-        "libnoexit",
-        "libc-debug",
-        "libdlmalloc",
-        "libcompiler_rt",
-        "libc++-noexcept",
-        "libc++abi-debug-noexcept",
-        "libsockets",
-    ]
-)
+emscripten.toolchain(version = "3.1.73")
 
 # NOTE the cache can be inspected with:
 # bazel build --platforms=@toolchains_emscripten//platform:wasm32-emscripten @emscripten_3_1_73//:cache
-# TODO add a multiple caches test
-
+# TODO having to declare the cache like this is not idiomatic and causes issues with registering multiple
+# Emscripten toolchains (would be useful for testing different versions, cache configurations, etc)
 # emscripten.cache(
-#     lto = True,
-#     wasm64 = True,
+#     pic = True,
 #     targets = [
-#         "crt1",
-#         "libstandalonewasm-nocatch",
 #         "libstubs-debug",
+#         "libnoexit",
 #         "libc-debug",
 #         "libdlmalloc",
 #         "libcompiler_rt",
-#         "libsockets"
+#         "libc++-noexcept",
+#         "libc++abi-debug-noexcept",
+#         "libsockets",
 #     ]
 # )
+
 use_repo(emscripten, emscripten_3_1_73 = "emscripten_3_1_73")
 
 register_toolchains("@emscripten_3_1_73//:toolchain")
-# it might make sense to export emscripten_cc_binary, emscripten_cc_library etc
-# for each exported toolchain, however, it is unclear how this would work with
-# build systems
+

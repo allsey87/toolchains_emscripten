@@ -1,0 +1,10 @@
+# At the moment, this rule does not do anything, however, it would be possible to just have a single
+# module with my integration tests that creates the various toolchains that it needs.
+
+test_suite(
+    name = "integration",
+    tests = [
+        "//rules_cc:validate",
+        "//rules_foreign_cc_cmake:validate",
+    ]
+)

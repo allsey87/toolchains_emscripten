@@ -7,12 +7,10 @@ load(
     "artifact_name_pattern",
     "env_entry",
     "env_set",
-    "tool_path",
     "tool",
     "feature",
     "flag_group",
     "flag_set",
-    "with_feature_set",
 )
 
 EmscriptenCacheInfo = provider(doc = "Location of the Emscripten cache", fields = ['path'])
@@ -67,7 +65,7 @@ all_link_actions = [
 
 def _impl(ctx):
     emcc = tool(tool = ctx.executable.emcc)
-    empp = tool(tool = ctx.executable.empp)
+    emxx = tool(tool = ctx.executable.emxx)
     action_configs = [
         action_config(
             action_name = ACTION_NAMES.c_compile,
@@ -75,45 +73,22 @@ def _impl(ctx):
         ),
         action_config(
             action_name = ACTION_NAMES.cpp_compile,
-            tools = [empp],
+            tools = [emxx],
         ),
         action_config(
             action_name = ACTION_NAMES.cpp_module_codegen,
-            tools = [empp],
+            tools = [emxx],
         ),
         action_config(
             action_name = ACTION_NAMES.cpp_module_compile,
-            tools = [empp],
+            tools = [emxx],
         ),
         action_config(
             action_name = ACTION_NAMES.cpp_link_executable,
-            tools = [empp],
+            tools = [emxx],
         ),
     ]
 
-    # This could be a way to use Embuilder?
-    # output = ctx.actions.declare_file("out.txt")
-    # ctx.actions.run(
-    #     outputs = [output],
-    #     executable = ctx.executable.nodejs,
-    #     arguments = ["aaaa"],
-    # )
-    # The reason why this will not work is that 
-
-    ### DEBUG ###
-
-    #print(ctx.attr.cache.label.workspace_root)
-    #print(ctx.attr.cache.label.package)
-    #print(ctx.attr.cache.label.repo_name)
-
-    # print(ctx.files.cache[0].root.path)
-    # print(ctx.files.cache[0].short_path)
-    # print(ctx.files.cache[0].path)
-    # print(ctx.files.cache[0].dirname)
-
-    #print(ctx.attr.cache[EmscriptenCacheInfo].path)
-    # Set various configuration paths and parameters for Emscripten. Paths are
-    # relative but are converted to absolute paths inside of .emscripten_config
     env_entries_emscripten = [
         env_entry(
             key = "BZL_BINARYEN_ROOT",
@@ -138,17 +113,6 @@ def _impl(ctx):
         ),
     ]
 
-    # default_preprocessor_flags_feature = feature(
-    #     name = "default_preprocessor_flags",
-    #     enabled = True,
-    #     env_sets = [
-    #         env_set(
-    #             actions = all_compile_actions,
-    #             env_entries = env_entries_emscripten,
-    #         )
-    #     ]
-    # )
-
     default_compile_flags_feature = feature(
         name = "default_compile_flags",
         enabled = True,
@@ -160,17 +124,25 @@ def _impl(ctx):
         ],
         flag_sets = [
             flag_set(
-                actions = all_compile_actions,
+                actions = [ACTION_NAMES.c_compile],
                 flag_groups = [
                     flag_group(
                         flags = [
-                            "-iwithsysroot{}".format("/include/c++/v1"),
-                            "-iwithsysroot{}".format("/include/compat"),
-                            "-iwithsysroot{}".format("/include")
+                            "-nobuiltininc",
                         ]
                     )
                 ]
-            )
+            ),
+            flag_set(
+                actions = [ACTION_NAMES.cpp_compile],
+                flag_groups = [
+                    flag_group(
+                        flags = [
+                            "-nobuiltininc",
+                        ]
+                    )
+                ]
+            ),
         ],
     )
 
@@ -183,65 +155,15 @@ def _impl(ctx):
                 env_entries = env_entries_emscripten,
             )
         ],
-        flag_sets = [
-            # flag_set(
-            #     actions = all_link_actions + lto_index_actions,
-            #     flag_groups = ([
-            #         flag_group(
-            #             flags = ctx.attr.link_flags,
-            #         ),
-            #     ] if ctx.attr.link_flags else []),
-            # ),
-            # flag_set(
-            #     actions = all_link_actions + lto_index_actions,
-            #     flag_groups = ([
-            #         flag_group(
-            #             flags = ctx.attr.opt_link_flags,
-            #         ),
-            #     ] if ctx.attr.opt_link_flags else []),
-            #     with_features = [with_feature_set(features = ["opt"])],
-            # ),
-        ],
+        flag_sets = [],
     )
 
     dbg_feature = feature(name = "dbg")
-
     opt_feature = feature(name = "opt")
-
-    sysroot_feature = feature(
-        name = "sysroot",
-        enabled = True,
-        flag_sets = [
-            flag_set(
-                actions = [
-                    # TODO does this match one of the groups above?
-                    ACTION_NAMES.c_compile,
-                    ACTION_NAMES.cpp_compile,
-                    ACTION_NAMES.linkstamp_compile,
-                    ACTION_NAMES.assemble,
-                    ACTION_NAMES.preprocess_assemble,
-                    ACTION_NAMES.cpp_header_parsing,
-                    ACTION_NAMES.cpp_module_compile,
-                    ACTION_NAMES.cpp_module_codegen,
-                    ACTION_NAMES.clif_match,
-                    ACTION_NAMES.cpp_link_executable,
-                    ACTION_NAMES.cpp_link_dynamic_library,
-                    ACTION_NAMES.cpp_link_nodeps_dynamic_library,
-                ],
-                flag_groups = [
-                    flag_group(
-                        flags = ["--sysroot=%{sysroot}"],
-                        expand_if_available = "sysroot",
-                    ),
-                ],
-            ),
-        ],
-    )
 
     features = [
         dbg_feature,
         opt_feature,
-        sysroot_feature,
         default_compile_flags_feature,
         default_link_flags_feature,
     ]
@@ -258,14 +180,9 @@ def _impl(ctx):
             extension = ".so",
         )
     ]
-
+   
     builtin_sysroot = ctx.files.cache[0].dirname + "/sysroot"
-
-    # cxx_builtin_include_directories = [
-    #     #ctx.attr.assets.label.workspace_root + "%sysroot%/include/",
-    #     #ctx.attr.assets.label.workspace_root + "/install/lib/clang/20/include"
-    # ]
-
+    
     return cc_common.create_cc_toolchain_config_info(
         ctx = ctx,
         features = features,
@@ -292,32 +209,10 @@ emscripten_toolchain_config = rule(
 
     attrs = {
         "emcc": attr.label(mandatory = True, executable = True, allow_files = True, cfg = "exec"),
-        "empp": attr.label(mandatory = True, executable = True, allow_files = True, cfg = "exec"),
-        #"install_dir": attr.string(mandatory = True),
-        # these are needed for emscripten config
+        "emxx": attr.label(mandatory = True, executable = True, allow_files = True, cfg = "exec"),
         "assets": attr.label(mandatory = True, cfg = "exec"), # TODO is this cfg attribute necessary?
         "cache": attr.label(mandatory = True, cfg = "exec", providers = [EmscriptenCacheInfo]), # TODO is this cfg attribute necessary?
-        # "node_modules": attr.label(mandatory = True, cfg = "exec"),
-        # "llvm_root": attr.label(mandatory = True, cfg = "exec"),
         "node": attr.label(mandatory = True, executable = True, allow_files = True, cfg = "exec"),
-        # "abi_libc_version": attr.string(mandatory = True),
-        # "compile_flags": attr.string_list(),
-        # "compiler": attr.string(mandatory = True),
-        # "coverage_compile_flags": attr.string_list(),
-        # "coverage_link_flags": attr.string_list(),
-        # "cpu": attr.string(mandatory = True),
-        # "cxx_flags": attr.string_list(),
-        # "dbg_compile_flags": attr.string_list(),
-        # "host_system_name": attr.string(mandatory = True),
-        # "link_flags": attr.string_list(),
-        # "link_libs": attr.string_list(),
-        # "opt_compile_flags": attr.string_list(),
-        # "opt_link_flags": attr.string_list(),
-        # "supports_start_end_lib": attr.bool(),
-        # "target_libc": attr.string(mandatory = True),
-        # "target_system_name": attr.string(mandatory = True),
-        # "toolchain_identifier": attr.string(mandatory = True),
-        # "unfiltered_compile_flags": attr.string_list(),
     },
     provides = [CcToolchainConfigInfo],
 )
