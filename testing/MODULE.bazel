@@ -23,19 +23,20 @@ emscripten.toolchain(version = "3.1.73")
 # bazel build --platforms=@toolchains_emscripten//platform:wasm32-emscripten @emscripten_3_1_73//:cache
 # TODO having to declare the cache like this is not idiomatic and causes issues with registering multiple
 # Emscripten toolchains (would be useful for testing different versions, cache configurations, etc)
-# emscripten.cache(
-#     pic = True,
-#     targets = [
-#         "libstubs-debug",
-#         "libnoexit",
-#         "libc-debug",
-#         "libdlmalloc",
-#         "libcompiler_rt",
-#         "libc++-noexcept",
-#         "libc++abi-debug-noexcept",
-#         "libsockets",
-#     ]
-# )
+emscripten.cache(
+    pic = True,
+    targets = [
+        "libstubs-debug",
+        "libnoexit",
+        "libc-debug",
+        "libdlmalloc",
+        "libcompiler_rt-wasm-sjlj",
+        "libc++-except",
+        "libc++abi-debug-except",
+        "libunwind-except",
+        "libsockets",
+    ]
+)
 
 use_repo(emscripten, emscripten_3_1_73 = "emscripten_3_1_73")
 
