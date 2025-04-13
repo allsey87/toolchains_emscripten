@@ -10,7 +10,6 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
 add_library(${PROJECT_NAME} MODULE src/test.cxx)
-#target_link_libraries(${PROJECT_NAME} PRIVATE crash)
 
 install(TARGETS ${PROJECT_NAME}
     LIBRARY DESTINATION lib
