@@ -6,5 +6,7 @@ test_suite(
     tests = [
         "//rules_cc:validate",
         "//rules_foreign_cc_cmake:validate",
+        "//rules_foreign_cc_configure_make:validate",
+        "//rules_foreign_cc_meson:validate",
     ]
 )
