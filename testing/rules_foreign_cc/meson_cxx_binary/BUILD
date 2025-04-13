@@ -3,8 +3,11 @@ load("@rules_foreign_cc//foreign_cc:defs.bzl", "meson")
 load("@bazel_skylib//rules:write_file.bzl", "write_file")
 
 filegroup(
-    name = "test_cxx_binary_srcs",
-    srcs = glob(["src/**"]),
+    name = "cxx_binary_srcs",
+    srcs = [
+        "meson.build",
+        "src/test.cxx"
+    ],
 )
 
 # TODO Add support for generating the cross file to rules_foreign_cc
@@ -17,8 +20,8 @@ filegroup(
 # side was made https://github.com/mesonbuild/meson/pull/5518 here. If this
 # were merged we could configure extensions properly via the cross file
 meson(
-    name = "test_cxx_binary",
-    lib_source = ":test_cxx_binary_srcs",
+    name = "cxx_binary",
+    lib_source = ":cxx_binary_srcs",
     install = True,
     build_data = [
         ":meson_cross_file",
@@ -30,7 +33,7 @@ meson(
         "--cross-file=$(execpath :meson_cross_file)"
     ],
     out_binaries = [
-        "test_cxx_binary.js",
+        "cxx_binary_out.js",
     ]
 )
 
@@ -38,13 +41,13 @@ write_file(
     name = "wrapper",
     out = "wrapper.js",
     content = [
-        "require('./test_cxx_binary/bin/test_cxx_binary.js')"
+        "require('./cxx_binary/bin/cxx_binary_out.js')"
     ]
 )
 
 js_test(
     name = "validate",
     entry_point = "wrapper.js",
-    data = [":test_cxx_binary"],
+    data = [":cxx_binary"],
     timeout = "short",
 )

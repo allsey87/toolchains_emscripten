@@ -4,9 +4,9 @@
 test_suite(
     name = "integration",
     tests = [
-        "//rules_cc:validate",
-        "//rules_foreign_cc_cmake:validate",
-        "//rules_foreign_cc_configure_make:validate",
-        "//rules_foreign_cc_meson:validate",
+        "//rules_cc/cxx_binary:validate",
+        "//rules_foreign_cc/cmake_cxx_binary:validate",
+        "//rules_foreign_cc/configure_make_cxx_binary:validate",
+        "//rules_foreign_cc/meson_cxx_binary:validate",
     ]
 )
