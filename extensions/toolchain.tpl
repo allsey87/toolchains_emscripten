@@ -119,6 +119,25 @@ genrule(
   executable = True,
 )
 
+py_binary(
+    name = "emar",
+    deps = [":emscripten"],
+    srcs = ["install/emscripten/emar.py"],
+    main = "install/emscripten/emar.py",
+)
+filegroup(
+  name = "emar_zip",
+  srcs = [":emar"],
+  output_group = "python_zip_file",
+)
+genrule(
+  name = "emar_zip_executable",
+  srcs = [":emar_zip"],
+  outs = ["emar_zip_executable.zip"],
+  # TODO add a cmd_ps: on Windows this should just be a no-op
+  cmd_bash = "echo '#!/usr/bin/env python3' | cat - $< >$@",
+  executable = True,
+)
 
 emscripten_combine_cache(
     name = "cache",
@@ -138,6 +157,7 @@ emscripten_toolchain_config(
     cache = ":cache",
     emcc = ":emcc_zip_executable",
     emxx = ":emxx_zip_executable",
+    emar = ":emar_zip_executable",
     node = "@nodejs//:node_bin",
 )
 
@@ -146,7 +166,14 @@ filegroup(
 )
 filegroup(
     name = "toolchain_files",
-    srcs = [":emcc_zip_executable", ":emxx_zip_executable", "@nodejs//:node_bin", ":assets", ":cache"]
+    srcs = [
+        ":emcc_zip_executable",
+        ":emxx_zip_executable",
+        ":emar_zip_executable",
+        "@nodejs//:node_bin",
+        ":assets",
+        ":cache"
+    ]
 )
 
 # I think all_files, compiler_files etc. just require the DefaultInfo provider (file) since no other provider is specified

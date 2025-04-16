@@ -66,6 +66,7 @@ all_link_actions = [
 def _impl(ctx):
     emcc = tool(tool = ctx.executable.emcc)
     emxx = tool(tool = ctx.executable.emxx)
+    emar = tool(tool = ctx.executable.emar)
     action_configs = [
         action_config(
             action_name = ACTION_NAMES.c_compile,
@@ -74,6 +75,10 @@ def _impl(ctx):
         action_config(
             action_name = ACTION_NAMES.cpp_compile,
             tools = [emxx],
+        ),
+        action_config(
+            action_name = ACTION_NAMES.cpp_link_static_library,
+            tools = [emar],
         ),
         action_config(
             action_name = ACTION_NAMES.cpp_module_codegen,
@@ -210,6 +215,7 @@ emscripten_toolchain_config = rule(
     attrs = {
         "emcc": attr.label(mandatory = True, executable = True, allow_files = True, cfg = "exec"),
         "emxx": attr.label(mandatory = True, executable = True, allow_files = True, cfg = "exec"),
+        "emar": attr.label(mandatory = True, executable = True, allow_files = True, cfg = "exec"),
         "assets": attr.label(mandatory = True, cfg = "exec"), # TODO is this cfg attribute necessary?
         "cache": attr.label(mandatory = True, cfg = "exec", providers = [EmscriptenCacheInfo]), # TODO is this cfg attribute necessary?
         "node": attr.label(mandatory = True, executable = True, allow_files = True, cfg = "exec"),

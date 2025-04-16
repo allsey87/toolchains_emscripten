@@ -48,7 +48,7 @@ def _emscripten_repository_impl(repository_ctx):
     #repository_ctx.download_and_extract(path, sha256=revision.sha_linux)
     # TODO hack to speed up local development
     #repository_ctx.download_and_extract("http://127.0.0.1:8000/wasm-binaries-hack.tar.xz", sha256="8c3f19c7a154f04bcdc744ba1b4264bd17f106512018ec629220ba5c18cec488")
-    repository_ctx.download_and_extract("http://127.0.0.1:8000/wasm-binaries.tar.xz", sha256="c2af924458e56b65ec407f9f8665319351671c56b5854a73fa8b8d8cc7bdf0e5")
+    repository_ctx.download_and_extract("http://127.0.0.1:8000/wasm-binaries.tar.xz", sha256="e3ae4c87a474337325b31cff247722cbd7790925e30fe70f259627d05cea33c3")
 
     # Helper functions for embuilder configuration and outputs
     def cache_suffix(invocation):
