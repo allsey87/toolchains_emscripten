@@ -8,6 +8,7 @@ test_suite(
         "//rules_foreign_cc/cmake_cxx_binary:validate",
         "//rules_foreign_cc/cmake_cxx_side_module:validate",
         "//rules_foreign_cc/configure_make_cxx_binary:validate",
+        "//rules_foreign_cc/configure_make_cxx_side_module:validate",
         "//rules_foreign_cc/meson_cxx_binary:validate",
         "//rules_foreign_cc/meson_cxx_side_module:validate",
     ]
