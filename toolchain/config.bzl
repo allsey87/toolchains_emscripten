@@ -1,6 +1,10 @@
 "bazel-contrib/toolchains_emscripten/toolchain"
 
-load("@bazel_tools//tools/build_defs/cc:action_names.bzl", "ACTION_NAMES")
+load(
+    "@rules_cc//cc:action_names.bzl",
+    "ACTION_NAME_GROUPS",
+    "ACTION_NAMES"
+)
 load(
     "@bazel_tools//tools/cpp:cc_toolchain_config_lib.bzl",
     "action_config",
@@ -11,62 +15,15 @@ load(
     "feature",
     "flag_group",
     "flag_set",
+    "variable_with_value"
 )
-
-EmscriptenCacheInfo = provider(doc = "Location of the Emscripten cache", fields = ['path'])
-
-# these groupings of actions come from https://github.com/vvviktor/bazel-mingw-toolchain/
-# but are identical to those in the existing Emscripten toolchain, except where noted below:
-all_compile_actions = [
-    ACTION_NAMES.c_compile,
-    ACTION_NAMES.cpp_compile,
-    ACTION_NAMES.linkstamp_compile,
-    ACTION_NAMES.assemble,
-    ACTION_NAMES.preprocess_assemble,
-    ACTION_NAMES.cpp_header_parsing,
-    ACTION_NAMES.cpp_module_compile,
-    ACTION_NAMES.cpp_module_codegen,
-    ACTION_NAMES.clif_match,
-    ACTION_NAMES.lto_backend,
-]
-
-all_cpp_compile_actions = [
-    ACTION_NAMES.cpp_compile,
-    ACTION_NAMES.linkstamp_compile,
-    ACTION_NAMES.cpp_header_parsing,
-    ACTION_NAMES.cpp_module_compile,
-    ACTION_NAMES.cpp_module_codegen,
-    ACTION_NAMES.clif_match,
-]
-
-all_link_actions = [
-    ACTION_NAMES.cpp_link_executable,
-    ACTION_NAMES.cpp_link_dynamic_library,
-    ACTION_NAMES.cpp_link_nodeps_dynamic_library,
-]
-
-# These rules are included in the bazel-mingw-toolchain but not in the Emscripten toolchain
-# lto_index_actions = [
-#     ACTION_NAMES.lto_index_for_executable,
-#     ACTION_NAMES.lto_index_for_dynamic_library,
-#     ACTION_NAMES.lto_index_for_nodeps_dynamic_library,
-# ]
-
-# These rules are included in the Emscripten toolchain but not in the bazel-mingw-toolchain
-# preprocessor_compile_actions = [
-#     ACTION_NAMES.c_compile,
-#     ACTION_NAMES.cpp_compile,
-#     ACTION_NAMES.linkstamp_compile,
-#     ACTION_NAMES.preprocess_assemble,
-#     ACTION_NAMES.cpp_header_parsing,
-#     ACTION_NAMES.cpp_module_compile,
-#     ACTION_NAMES.clif_match,
-# ]
+load("//toolchain:emscripten_cache.bzl", "EmscriptenCacheInfo")
 
 def _impl(ctx):
     emcc = tool(tool = ctx.executable.emcc)
     emxx = tool(tool = ctx.executable.emxx)
     emar = tool(tool = ctx.executable.emar)
+
     action_configs = [
         action_config(
             action_name = ACTION_NAMES.c_compile,
@@ -110,7 +67,6 @@ def _impl(ctx):
         env_entry(
             key = "BZL_CACHE",
             value = ctx.files.cache[0].dirname,
-            #value = ""
         ),
         env_entry(
             key = "BZL_NODE_JS",
@@ -118,28 +74,59 @@ def _impl(ctx):
         ),
     ]
 
-    default_compile_flags_feature = feature(
-        name = "default_compile_flags",
+    archiver_flags_feature = feature(
+        name = "archiver_flags",
+        enabled = True,
+        flag_sets = [
+            flag_set(
+                actions = [ACTION_NAMES.cpp_link_static_library],
+                flag_groups = [
+                    flag_group(
+                        flags = ["rcs", "%{output_execpath}"],
+                        expand_if_available = "output_execpath",
+                    ),
+                    flag_group(
+                        iterate_over = "libraries_to_link",
+                        flag_groups = [
+                            flag_group(
+                                flags = ["%{libraries_to_link.name}"],
+                                expand_if_equal = variable_with_value(
+                                    name = "libraries_to_link.type",
+                                    value = "object_file",
+                                ),
+                            ),
+                            flag_group(
+                                flags = ["%{libraries_to_link.object_files}"],
+                                iterate_over = "libraries_to_link.object_files",
+                                expand_if_equal = variable_with_value(
+                                    name = "libraries_to_link.type",
+                                    value = "object_file_group",
+                                ),
+                            ),
+                        ],
+                        expand_if_available = "libraries_to_link",
+                    ),
+                ],
+            ),
+        ],
+    )
+
+    # TODO I can directly set these on the action configs which would be much cleaner
+    default_feature = feature(
+        name = "default",
         enabled = True,
         env_sets = [
             env_set(
-                actions = all_compile_actions,
+                actions = \
+                    ACTION_NAME_GROUPS.all_cc_compile_actions + \
+                    ACTION_NAME_GROUPS.all_cc_link_actions + \
+                    [ACTION_NAMES.cpp_link_static_library],
                 env_entries = env_entries_emscripten,
             )
         ],
         flag_sets = [
             flag_set(
-                actions = [ACTION_NAMES.c_compile],
-                flag_groups = [
-                    flag_group(
-                        flags = [
-                            "-nobuiltininc",
-                        ]
-                    )
-                ]
-            ),
-            flag_set(
-                actions = [ACTION_NAMES.cpp_compile],
+                actions = ACTION_NAME_GROUPS.all_cc_compile_actions,
                 flag_groups = [
                     flag_group(
                         flags = [
@@ -149,18 +136,6 @@ def _impl(ctx):
                 ]
             ),
         ],
-    )
-
-    default_link_flags_feature = feature(
-        name = "default_link_flags",
-        enabled = True,
-        env_sets = [
-            env_set(
-                actions = all_link_actions,
-                env_entries = env_entries_emscripten,
-            )
-        ],
-        flag_sets = [],
     )
 
     dbg_feature = feature(name = "dbg")
@@ -169,8 +144,8 @@ def _impl(ctx):
     features = [
         dbg_feature,
         opt_feature,
-        default_compile_flags_feature,
-        default_link_flags_feature,
+        default_feature,
+        archiver_flags_feature,
     ]
 
     artifact_name_patterns = [
@@ -205,47 +180,13 @@ def _impl(ctx):
 
 emscripten_toolchain_config = rule(
     implementation = _impl,
-    # These attributes are available in the _impl function above under ctx. IMPORTANT:
-    # NOTE: that when passing labels into this function, e.g.:
-    # "emscripten_binaries": attr.label(mandatory = True, cfg = "exec"),
-    # it is possible to set the exec configuration. This is important for transitioning
-    # between host and exec configurations.
-    # Here I can specify which arguments are mandatory, their types, and default values
-
     attrs = {
         "emcc": attr.label(mandatory = True, executable = True, allow_files = True, cfg = "exec"),
         "emxx": attr.label(mandatory = True, executable = True, allow_files = True, cfg = "exec"),
         "emar": attr.label(mandatory = True, executable = True, allow_files = True, cfg = "exec"),
-        "assets": attr.label(mandatory = True, cfg = "exec"), # TODO is this cfg attribute necessary?
-        "cache": attr.label(mandatory = True, cfg = "exec", providers = [EmscriptenCacheInfo]), # TODO is this cfg attribute necessary?
+        "assets": attr.label(mandatory = True, cfg = "exec"),
+        "cache": attr.label(mandatory = True, cfg = "exec", providers = [EmscriptenCacheInfo]),
         "node": attr.label(mandatory = True, executable = True, allow_files = True, cfg = "exec"),
     },
     provides = [CcToolchainConfigInfo],
-)
-
-def _emscripten_combine_cache_impl(ctx):
-    cache = []
-    for prebuilt_asset in ctx.attr.prebuilt_cache.files.to_list():
-        prebuilt_asset_link = ctx.actions.declare_file(prebuilt_asset.path)
-        ctx.actions.symlink(output=prebuilt_asset_link, target_file=prebuilt_asset)
-        cache.append(prebuilt_asset_link)
-    # Note: for some reason, the prebuilt cache must be added to `cache` first. It is unclear why, but if this
-    # is not the case, the cache is directory is wrong (debug with print in .emscripten_config)
-    for generated_cache in ctx.attr.generated_caches:
-        for generated_asset in generated_cache.files.to_list():
-            generated_asset_link = ctx.actions.declare_file(generated_asset.path.removeprefix(generated_asset.root.path + "/"))
-            ctx.actions.symlink(output=generated_asset_link, target_file=generated_asset)
-            cache.append(generated_asset_link)
-    return [
-        DefaultInfo(files = depset(cache)),
-        EmscriptenCacheInfo(path = ctx.genfiles_dir.path)
-    ]
-
-emscripten_combine_cache = rule(
-    implementation = _emscripten_combine_cache_impl,
-    attrs = {
-        "prebuilt_cache": attr.label(mandatory = True, cfg = "exec"),
-        "generated_caches": attr.label_list(cfg = "exec"),
-    },
-    provides = [DefaultInfo, EmscriptenCacheInfo],
 )

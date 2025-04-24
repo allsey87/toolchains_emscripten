@@ -1,10 +1,14 @@
 ""
 
 load("@rules_python//python:defs.bzl", "py_binary")
-load("@toolchains_emscripten//toolchain:config.bzl", "emscripten_toolchain_config", "emscripten_combine_cache")
 load("@aspect_bazel_lib//lib:run_binary.bzl", "run_binary")
 
+# //: is the emscripten_3_1_73 repository
 load("//:repo_config.bzl", "install_dir", "embuilder_invocations")
+# @toolchains_emscripten// is the base repository
+load("@toolchains_emscripten//toolchain:config.bzl", "emscripten_toolchain_config")
+load("@toolchains_emscripten//toolchain:emscripten_cache.bzl", "emscripten_combine_cache")
+
 
 filegroup(
     name = "assets",
@@ -33,8 +37,6 @@ py_library(
             "install/emscripten/test/**/*",
             # it would be nice if we could also exclude install/emscripten/node_modules from here
             # https://stackoverflow.com/a/26293141/5164339 I would have to be able to set NODE_PATH
-            # NOTE this seems to work, but it is unclear why
-            #"install/emscripten/node_modules/**/*",
         ]
     ),
     srcs = glob([
@@ -176,10 +178,22 @@ filegroup(
     ]
 )
 
+# currently a subset of toolchain files
+# note that rules_foreign_cc uses all_files and needs everything
+# to be included there
+filegroup(
+    name = "ar_files",
+    srcs = [
+        ":emar_zip_executable",
+        ":assets",
+    ]
+)
+
 # I think all_files, compiler_files etc. just require the DefaultInfo provider (file) since no other provider is specified
 cc_toolchain(
     name = "emscripten_cc_toolchain",
     all_files = ":toolchain_files",
+    ar_files = ":ar_files",
     compiler_files = ":toolchain_files",
     dwp_files = ":empty",
     linker_files = ":toolchain_files",

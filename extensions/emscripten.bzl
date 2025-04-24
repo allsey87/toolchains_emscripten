@@ -48,7 +48,7 @@ def _emscripten_repository_impl(repository_ctx):
     #repository_ctx.download_and_extract(path, sha256=revision.sha_linux)
     # TODO hack to speed up local development
     #repository_ctx.download_and_extract("http://127.0.0.1:8000/wasm-binaries-hack.tar.xz", sha256="8c3f19c7a154f04bcdc744ba1b4264bd17f106512018ec629220ba5c18cec488")
-    repository_ctx.download_and_extract("http://127.0.0.1:8000/wasm-binaries.tar.xz", sha256="e3ae4c87a474337325b31cff247722cbd7790925e30fe70f259627d05cea33c3")
+    repository_ctx.download_and_extract("http://127.0.0.1:8000/wasm-binaries.tar.xz", sha256="7c2ea588a5b44dcff93e8b72de31db57aa6c13e6e5944b01c4cf5b43dae04dba")
 
     # Helper functions for embuilder configuration and outputs
     def cache_suffix(invocation):
@@ -100,7 +100,7 @@ def _emscripten_repository_impl(repository_ctx):
     repository_ctx.file("install/emscripten/.emscripten", EMSCRIPTEN_CONFIG)
     
     # Create the BUILD.bazel file for the repository
-    repository_ctx.template("BUILD.bazel", Label("toolchain.tpl"))
+    repository_ctx.file("BUILD.bazel", repository_ctx.read(Label("toolchain.BUILD.bazel")))
 
 emscripten_repository = repository_rule(
     _emscripten_repository_impl,
