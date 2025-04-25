@@ -3,12 +3,9 @@
 load("@rules_python//python:defs.bzl", "py_binary")
 load("@aspect_bazel_lib//lib:run_binary.bzl", "run_binary")
 
-# //: is the emscripten_3_1_73 repository
-load("//:repo_config.bzl", "install_dir", "embuilder_invocations")
 # @toolchains_emscripten// is the base repository
 load("@toolchains_emscripten//toolchain:config.bzl", "emscripten_toolchain_config")
 load("@toolchains_emscripten//toolchain:emscripten_cache.bzl", "emscripten_combine_cache")
-
 
 filegroup(
     name = "assets",
