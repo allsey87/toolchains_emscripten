@@ -1,8 +1,13 @@
 test_suite(
     name = "integration",
     tests = [
+        "//rules_cc/c_binary:validate",
+        "//rules_cc/c_library:validate",
         "//rules_cc/cxx_binary:validate",
         "//rules_cc/cxx_library:validate",
+        "//rules_foreign_cc/cmake_c_binary:validate",
+        "//rules_foreign_cc/cmake_c_side_module:validate",
+        "//rules_foreign_cc/cmake_c_static_library:validate",
         "//rules_foreign_cc/cmake_cxx_binary:validate",
         "//rules_foreign_cc/cmake_cxx_side_module:validate",
         "//rules_foreign_cc/cmake_cxx_static_library:validate",

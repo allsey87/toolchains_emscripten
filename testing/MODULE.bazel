@@ -35,6 +35,9 @@ emscripten_cache.declare(
         "libc++abi-debug-except",
         "libunwind-except",
         "libsockets",
+        "libcompiler_rt",
+        "libc++-noexcept",
+        "libc++abi-debug-noexcept",
     ]
 )
 use_repo(emscripten_cache, emscripten_cache_pic = "emscripten_cache_pic")

@@ -1,5 +1,6 @@
 #include <iostream>
 #include <stdexcept>
+#include <cstdlib>
 #include <dlfcn.h>
 
 typedef int (*fn_ptr)(int, int);
@@ -9,6 +10,7 @@ int main() {
     if (!side_module) {
         const std::string& error_message =
             std::string("Error loading module: ") + dlerror();
+        dlclose(side_module);
         throw std::runtime_error(error_message);
     }
     dlerror();
@@ -18,13 +20,15 @@ int main() {
     if (dlsym_error) {
         const std::string& error_message =
             std::string("Error getting symbol: ") + dlsym_error;
+        dlclose(side_module);
         throw std::runtime_error(error_message);
     }
     
     if(sum_fn(41, 1) != 42) {
+        dlclose(side_module);
         throw std::runtime_error("Error adding numbers");
     }
     
     dlclose(side_module);
-    return 0;
+    return EXIT_SUCCESS;
 }
