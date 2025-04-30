@@ -55,7 +55,7 @@ py_binary(
 
 [
     run_binary(
-        name = "generate_cache{}".format("".join(arguments).replace("-", "_")),
+        name = "generate_cache_{}".format(name),
         tool = ":embuilder",
         args = arguments + ["build"] + targets,
         outs = [
@@ -75,7 +75,7 @@ py_binary(
         progress_message = "Generating Emscripten cache",
         mnemonic = "EmscriptenCacheGenerate"
     )
-    for arguments, cache_suffix, targets in embuilder_invocations
+    for name, (arguments, cache_suffix, targets) in embuilder_invocations.items()
 ]
 
 py_binary(
@@ -142,8 +142,7 @@ emscripten_combine_cache(
     name = "cache",
     prebuilt_cache = ":prebuilt_cache",
     generated_caches = [
-        "generate_cache{}".format("".join(arguments).replace("-", "_"))
-        for arguments, _, _ in embuilder_invocations
+        "generate_cache_{}".format(name) for name in embuilder_invocations.keys()
     ]
 )
 

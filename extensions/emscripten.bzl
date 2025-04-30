@@ -41,8 +41,8 @@ else:
 
 BUILD_HEADER_TEMPLATE = """
 {load_statements}
+embuilder_invocations = {{{invocations}}}
 install_dir = "{install_dir}"
-embuilder_invocations = [{invocations}]
 """
 
 def _emscripten_repository_impl(repository_ctx):  
@@ -53,7 +53,7 @@ def _emscripten_repository_impl(repository_ctx):
     #repository_ctx.download_and_extract(path, sha256=revision.sha_linux)
     # TODO hack to speed up local development
     # repository_ctx.download_and_extract("http://127.0.0.1:8000/wasm-binaries-hack.tar.xz", sha256="8c3f19c7a154f04bcdc744ba1b4264bd17f106512018ec629220ba5c18cec488")
-    repository_ctx.download_and_extract("http://127.0.0.1:8000/wasm-binaries.tar.xz", sha256="7c2ea588a5b44dcff93e8b72de31db57aa6c13e6e5944b01c4cf5b43dae04dba")
+    repository_ctx.download_and_extract("http://127.0.0.1:8000/wasm-binaries.tar.xz", sha256="6c0a22dc52b3e0c30f1864d3d9794c142eb7590628c09b307e654d45ab8a7270")
 
     load_statements = []
     invocations = []
@@ -68,8 +68,8 @@ def _emscripten_repository_impl(repository_ctx):
 
     build_header = BUILD_HEADER_TEMPLATE.format(
         load_statements = "\n".join(load_statements),
-        install_dir = str(repository_ctx.path('install')),
-        invocations = ", ".join(invocations)
+        invocations = ", ".join(["'{}': {}".format(invocation, invocation) for invocation in invocations]),
+        install_dir = str(repository_ctx.path('install'))
     )
 
     # Create the Emscripten config file
