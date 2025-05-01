@@ -6,7 +6,7 @@ load(
     "ACTION_NAMES"
 )
 load(
-    "@bazel_tools//tools/cpp:cc_toolchain_config_lib.bzl",
+    "@rules_cc//cc:cc_toolchain_config_lib.bzl",
     "action_config",
     "artifact_name_pattern",
     "env_entry",
@@ -36,6 +36,10 @@ def _impl(ctx):
         action_config(
             action_name = ACTION_NAMES.cpp_link_static_library,
             tools = [emar],
+        ),
+        action_config(
+            action_name = ACTION_NAMES.cpp_link_dynamic_library,
+            tools = [emxx],
         ),
         action_config(
             action_name = ACTION_NAMES.cpp_module_codegen,

@@ -51,6 +51,9 @@ def _emscripten_binary_impl(ctx):
         output_js = ctx.actions.declare_file(ctx.label.name + ".js")
         outputs.append(output_js)
         arguments.add("-o", output_js)
+
+    # append all linkopts
+    arguments.add_all(ctx.attr.linkopts)
     
     ctx.actions.run(
         executable = linker,
@@ -67,6 +70,7 @@ emscripten_binary = rule(
     implementation = _emscripten_binary_impl,
     attrs = {
         "deps": attr.label_list(cfg = "target", providers = [CcInfo]),
+        "linkopts": attr.string_list(),
         "standalone_wasm": attr.bool()
     },
     toolchains = use_cc_toolchain(),
