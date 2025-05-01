@@ -6,7 +6,7 @@ cc_binary(
     srcs = ["src/main.cxx"],
     deps = [":cxx_static_library"],
     linkopts = ["-fwasm-exceptions", "-sSTRICT", "-sSINGLE_FILE"],
-    copts = ["-fwasm-exceptions"],
+    cxxopts = ["-fwasm-exceptions"],
 )
 
 filegroup(

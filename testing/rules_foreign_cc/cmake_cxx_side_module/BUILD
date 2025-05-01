@@ -5,7 +5,7 @@ cc_binary(
     name = "cxx_main_module",
     srcs = ["src/main.cxx"],
     linkopts = ["-fwasm-exceptions", "-sSTRICT", "-sSINGLE_FILE", "-sMAIN_MODULE=1"],
-    copts = ["-fwasm-exceptions", "-fPIC"],
+    cxxopts = ["-fwasm-exceptions", "-fPIC"],
 )
 
 filegroup(
