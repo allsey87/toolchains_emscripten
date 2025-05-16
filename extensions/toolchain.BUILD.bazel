@@ -1,17 +1,29 @@
-""
+# toolchai
 
 load("@rules_python//python:defs.bzl", "py_binary")
 load("@aspect_bazel_lib//lib:run_binary.bzl", "run_binary")
+load("@rules_cc//cc/toolchains:toolchain.bzl", "cc_toolchain")
+load("@rules_cc//cc/toolchains:artifacts.bzl", "cc_artifact_name_pattern")
+load("@rules_cc//cc/toolchains:tool.bzl", "cc_tool")
+load("@rules_cc//cc/toolchains:tool_map.bzl", "cc_tool_map")
+load("@rules_cc//cc/toolchains:args.bzl", "cc_args")
+load("@rules_cc//cc/toolchains/args:sysroot.bzl", "cc_sysroot")
+load("@rules_cc//cc/toolchains:args_list.bzl", "cc_args_list")
+load("@rules_cc//cc/toolchains:feature.bzl", "cc_feature")
+load("@rules_cc//cc/toolchains:feature.bzl", "cc_feature")
+load("@bazel_skylib//rules:write_file.bzl", "write_file")
 
-# @toolchains_emscripten// is the base repository
-load("@toolchains_emscripten//toolchain:config.bzl", "emscripten_toolchain_config")
-load("@toolchains_emscripten//toolchain:emscripten_cache.bzl", "emscripten_combine_cache")
+load("@bazel_skylib//rules/directory:directory.bzl", "directory")
+load("@bazel_skylib//rules/directory:subdirectory.bzl", "subdirectory")
+
+
+load("@toolchains_emscripten//toolchain:emscripten_cache.bzl", "emscripten_merge_cache")
+load("@toolchains_emscripten//toolchain:temp_dir.bzl", "directory2")
 
 filegroup(
-    name = "assets",
+    name = "llvm",
     srcs = glob([
         "install/bin/**/*",
-        #"install/emscripten/node_modules/**/*"
     ])
 )
 
@@ -34,11 +46,11 @@ py_library(
             "install/emscripten/test/**/*",
             # it would be nice if we could also exclude install/emscripten/node_modules from here
             # https://stackoverflow.com/a/26293141/5164339 I would have to be able to set NODE_PATH
-        ]
+        ], allow_empty = True
     ),
     srcs = glob([
             "install/emscripten/**/*.py"
-        ]
+        ], allow_empty = True
     ),
     imports = [
         "install/emscripten",
@@ -55,22 +67,20 @@ py_binary(
 
 [
     run_binary(
-        name = "generate_cache_{}".format(name),
+        name = "generated_cache_{}".format(name),
         tool = ":embuilder",
         args = arguments + ["build"] + targets,
         outs = [
-            "install/emscripten/cache/sysroot/lib/" + cache_suffix + target + (
+            "sysroot/lib/" + cache_suffix + target + (
                 ".a" if target.startswith("lib") else ".o"
             ) for target in targets
         ],
+        srcs = [
+            ":embuilder_env"
+        ],
         env = {
-            "BZL_BINARYEN_ROOT": install_dir,
-            "BZL_LLVM_ROOT": install_dir + "/bin",
-            "BZL_EMSCRIPTEN_ROOT": install_dir + "/emscripten",
-            "BZL_NODE_JS": "/bin/false",
-            "BZL_CACHE": "$(RULEDIR)/install/emscripten/cache",
-            "EM_IGNORE_SANITY": "1",
-            "EM_FROZEN_CACHE": "0",
+            "EM_CONFIG": "$(execpath :embuilder_env)",
+            "EM_CACHE": "$(RULEDIR)",
         },
         progress_message = "Generating Emscripten cache",
         mnemonic = "EmscriptenCacheGenerate"
@@ -78,9 +88,21 @@ py_binary(
     for name, (arguments, cache_suffix, targets) in embuilder_invocations.items()
 ]
 
+[
+    directory2(
+        name = "generated_cache_{}_dir".format(name),
+        srcs = [
+            ":generated_cache_{}".format(name)
+        ]
+    )
+    for name in embuilder_invocations.keys()
+]
+
+
 py_binary(
     name = "emcc",
     deps = [":emscripten"],
+    data = [":emscripten_env"],
     srcs = ["install/emscripten/emcc.py"],
     main = "install/emscripten/emcc.py",
 )
@@ -101,6 +123,7 @@ genrule(
 py_binary(
     name = "emxx",
     deps = [":emscripten"],
+    data = [":emscripten_env"],
     srcs = ["install/emscripten/em++.py"],
     main = "install/emscripten/em++.py",
 )
@@ -121,6 +144,7 @@ genrule(
 py_binary(
     name = "emar",
     deps = [":emscripten"],
+    data = [":emscripten_env"],
     srcs = ["install/emscripten/emar.py"],
     main = "install/emscripten/emar.py",
 )
@@ -138,64 +162,189 @@ genrule(
   executable = True,
 )
 
-emscripten_combine_cache(
+emscripten_merge_cache(
     name = "cache",
     prebuilt_cache = ":prebuilt_cache",
     generated_caches = [
-        "generate_cache_{}".format(name) for name in embuilder_invocations.keys()
+        ":generated_cache_{}".format(name) for name in embuilder_invocations.keys()
     ]
 )
 
-# this is just a simple rule that returns a CcToolchainConfigInfo
-# only thing this is doing with :cache and :assets is setting up the environment variables like BZL_CACHE
-# the actual making-available of these files occurs via the cc_toolchain options below
-emscripten_toolchain_config(
-    name = "emscripten_toolchain_config",
-    assets = ":assets",
-    cache = ":cache",
-    emcc = ":emcc_zip_executable",
-    emxx = ":emxx_zip_executable",
-    emar = ":emar_zip_executable",
-    node = "@nodejs//:node_bin",
+directory(
+    name = "prebuilt_cache_dir",
+    srcs = glob([
+        "install/emscripten/cache/**/*",
+    ])
 )
 
+# directory(
+#     name = "cache_directory",
+#     srcs = [
+#         ":cache"
+#     ]
+#     # srcs = [":prebuilt_cache"] + [
+#     #     "generated_cache_{}".format(name) for name in embuilder_invocations.keys()
+#     # ]
+# )
+
+# subdirectory(
+#     name = "sysroot_directory",
+#     parent = ":cache_directory",
+#     path = "external/toolchains_emscripten++emscripten+emscripten_3_1_73/external/toolchains_emscripten++emscripten+emscripten_3_1_73/install/emscripten/cache/sysroot",
+# )
+
 filegroup(
-    name = "empty",
+  name = "sysroot_install_stamp",
+  srcs = [":cache"],
+  output_group = "sysroot_install_stamp",
 )
-filegroup(
-    name = "toolchain_files",
+
+py_binary(
+    name = "emscripten_config",
+    srcs = ["emscripten_config.py"],
+    main = "emscripten_config.py",
+)
+
+run_binary(
+    name = "emscripten_env",
+    tool = ":emscripten_config",
     srcs = [
-        ":emcc_zip_executable",
-        ":emxx_zip_executable",
-        ":emar_zip_executable",
+        ":BUILD.bazel",
+        ":sysroot_install_stamp",
         "@nodejs//:node_bin",
-        ":assets",
-        ":cache"
-    ]
+    ],
+    args = [
+        "$(RULEDIR)/install/emscripten/.emscripten"
+    ],
+    env = {
+        "BUILD_FILE_PATH": "$(execpath :BUILD.bazel)",
+        "NODE_PATH": "$(execpath @nodejs//:node_bin)",
+        "SYSTEMROOT_INSTALL_STAMP_PATH": "$(execpath :sysroot_install_stamp)",
+    },
+    outs = [
+        "install/emscripten/.emscripten"
+    ],
 )
 
-# currently a subset of toolchain files
-# note that rules_foreign_cc uses all_files and needs everything
-# to be included there
-filegroup(
-    name = "ar_files",
+run_binary(
+    name = "embuilder_env",
+    tool = ":emscripten_config",
     srcs = [
-        ":emar_zip_executable",
-        ":assets",
-    ]
+        ":BUILD.bazel",
+        "@nodejs//:node_bin",
+    ],
+    args = [
+        "$(RULEDIR)/install/emscripten/.embuilder"
+    ],
+    env = {
+        "BUILD_FILE_PATH": "$(execpath :BUILD.bazel)",
+        "NODE_PATH": "$(execpath @nodejs//:node_bin)",
+    },
+    outs = [
+        "install/emscripten/.embuilder"
+    ],
 )
 
-# I think all_files, compiler_files etc. just require the DefaultInfo provider (file) since no other provider is specified
+cc_artifact_name_pattern(
+    name = "static_library",
+    category = "@rules_cc//cc/toolchains/artifacts:static_library",
+    prefix = "lib",
+    extension = ".a",
+)
+
+cc_artifact_name_pattern(
+    name = "dynamic_library",
+    category = "@rules_cc//cc/toolchains/artifacts:dynamic_library",
+    prefix = "lib",
+    extension = ".so",
+)
+
+cc_artifact_name_pattern(
+    name = "executable",
+    category = "@rules_cc//cc/toolchains/artifacts:executable",
+    prefix = "",
+    extension = "", # todo, try .js
+)
+
+cc_args(
+    name = "sysroot",
+    actions = [
+        "@rules_cc//cc/toolchains/actions:assembly_actions",
+        "@rules_cc//cc/toolchains/actions:c_compile",
+        "@rules_cc//cc/toolchains/actions:cpp_compile_actions",
+        "@rules_cc//cc/toolchains/actions:link_actions",
+    ],
+    args = [
+        "--sysroot={cache}/sysroot"
+    ],
+    format = {
+        "cache": ":cache"
+    },
+)
+
+cc_tool(
+    name = "emcc_zip_executable_tool",
+    src = ":emcc_zip_executable",
+    data = [
+        "@nodejs//:node_bin",
+        ":llvm",
+        ":cache"
+    ],
+)
+
+cc_tool(
+    name = "emxx_zip_executable_tool",
+    src = ":emxx_zip_executable",
+    data = [
+        "@nodejs//:node_bin",
+        ":llvm",
+        ":cache"
+    ],
+)
+
+cc_tool(
+    name = "emar_zip_executable_tool",
+    src = ":emar_zip_executable",
+    data = [
+        "@nodejs//:node_bin",
+        ":llvm",
+        ":cache"
+    ],
+)
+
+cc_tool_map(
+    name = "toolchain_tools",
+    tools = {
+        "@rules_cc//cc/toolchains/actions:c_compile": ":emcc_zip_executable_tool",
+        "@rules_cc//cc/toolchains/actions:cpp_compile_actions": ":emxx_zip_executable_tool",
+        "@rules_cc//cc/toolchains/actions:link_actions": ":emxx_zip_executable_tool",
+        "@rules_cc//cc/toolchains/actions:ar_actions": ":emar_zip_executable_tool",
+    },
+)
+
+# there doesn't seem to be a builtin_sysroot option with the new toolchain, although this just
+# translates to a --sysroot argument so the answer is probably to use that
+# https://github.com/bazelbuild/rules_cc/blob/main/cc/toolchains/args/sysroot.bzl
+# docs mention using a bazel_skylib's directory rule as the sysroot argument?
+# https://github.com/bazelbuild/bazel-skylib?tab=readme-ov-file#list-of-rules-in-rules
+# should the merge cache rule return a directory (instead of output info)? The problem there is
+# passing that directory into the run_binary rule whose execpath is looking at DefaultInfo.
+# just make an additional provider, the proper fix would probably be to allow DirectoryInfo to
+# be expanded using https://bazel.build/rules/lib/builtins/ctx#parameters_1
+
+# cc_sysroot(
+#     "emscripten_sysroot",
+#     # dir
+# )
+
 cc_toolchain(
     name = "emscripten_cc_toolchain",
-    all_files = ":toolchain_files",
-    ar_files = ":ar_files",
-    compiler_files = ":toolchain_files",
-    dwp_files = ":empty",
-    linker_files = ":toolchain_files",
-    objcopy_files = ":empty",
-    strip_files = ":empty",
-    toolchain_config = ":emscripten_toolchain_config", # this input requires the CcToolchainConfigInfo provider
+    tool_map = ":toolchain_tools",
+    artifact_name_patterns = [
+        ":static_library",
+        ":dynamic_library",
+        ":executable"
+    ],
 )
 
 toolchain(

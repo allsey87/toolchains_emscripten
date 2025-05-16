@@ -1,9 +1,13 @@
 "bazel-contrib/toolchains_emscripten/toolchain"
+load("@rules_cc//cc/toolchains:args.bzl", "cc_args")
 
 load(
     "@rules_cc//cc:action_names.bzl",
     "ACTION_NAME_GROUPS",
     "ACTION_NAMES"
+)
+load("@rules_cc//cc/common:cc_common.bzl",
+    "cc_common"
 )
 load(
     "@rules_cc//cc:cc_toolchain_config_lib.bzl",
@@ -18,6 +22,24 @@ load(
     "variable_with_value"
 )
 load("//toolchain:emscripten_cache.bzl", "EmscriptenCacheInfo")
+
+def _emscripten_env_impl(ctx):
+    print('type(ctx) = {}'.format(type(ctx)))
+    
+emscripten_env = rule(
+    implementation = _emscripten_env_impl,
+    attrs = {
+        "assets": attr.label(configurable = False, mandatory = True, cfg = "exec"),
+        "cache": attr.label(configurable = False, mandatory = True, providers = [EmscriptenCacheInfo], cfg = "exec"),
+        "node": attr.label(configurable = False, mandatory = True, executable = True, allow_files = True, cfg = "exec"),
+    }
+)
+
+# def workspace_root(label):
+#     return Label(label).workspace_root
+
+# def cache_dir(label):
+#     return Label(label)[EmscriptenCacheInfo].path
 
 def _impl(ctx):
     emcc = tool(tool = ctx.executable.emcc)
@@ -189,7 +211,7 @@ emscripten_toolchain_config = rule(
         "emxx": attr.label(mandatory = True, executable = True, allow_files = True, cfg = "exec"),
         "emar": attr.label(mandatory = True, executable = True, allow_files = True, cfg = "exec"),
         "assets": attr.label(mandatory = True, cfg = "exec"),
-        "cache": attr.label(mandatory = True, cfg = "exec", providers = [EmscriptenCacheInfo]),
+        "cache": attr.label(mandatory = True, providers = [EmscriptenCacheInfo], cfg = "exec"),
         "node": attr.label(mandatory = True, executable = True, allow_files = True, cfg = "exec"),
     },
     provides = [CcToolchainConfigInfo],

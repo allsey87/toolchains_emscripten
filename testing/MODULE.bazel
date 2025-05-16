@@ -2,6 +2,12 @@
 module(name = "toolchains_emscripten_integration_tests", version = "0.0.0", compatibility_level = 1)
 
 bazel_dep(name = "rules_cc", version = "0.1.1")
+git_override(
+    module_name = "rules_cc",
+    remote = "https://github.com/bazelbuild/rules_cc.git",
+    commit = "794b5b0df5b991a87a703bd6950544fcc1651c24"
+)
+
 bazel_dep(name = "rules_foreign_cc", version = "0.14.0")
 # TODO REMOVE THIS AFTER DEBUGGING
 local_path_override(
@@ -11,6 +17,7 @@ local_path_override(
 
 bazel_dep(name = "aspect_bazel_lib", version = "2.10.0")
 bazel_dep(name = "aspect_rules_js", version = "2.1.3")
+bazel_dep(name = "bazel_skylib", version = "1.7.1")
 bazel_dep(name = "toolchains_emscripten", version = "0.0.0")
 local_path_override(
     module_name = "toolchains_emscripten",

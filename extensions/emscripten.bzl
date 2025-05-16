@@ -15,29 +15,37 @@ EMSCRIPTEN_URL = "https://storage.googleapis.com/webassembly/emscripten-releases
 # TODO how does rules_foreign_cc set EXT_BUILD_ROOT, is this something I can do and configure my
 # toolchain to also set? I would have to use a slightly different variable name as to not
 # conflict with rules_foreign_cc
-EMSCRIPTEN_CONFIG = """
-import os
-FROZEN_CACHE = True
-if os.environ.get('EXT_BUILD_ROOT'):
-    CACHE = os.path.join(os.environ['EXT_BUILD_ROOT'], os.environ['BZL_CACHE'])
-    BINARYEN_ROOT = os.path.join(os.environ['EXT_BUILD_ROOT'], os.environ['BZL_BINARYEN_ROOT'])
-    LLVM_ROOT = os.path.join(os.environ['EXT_BUILD_ROOT'], os.environ['BZL_LLVM_ROOT'])
-    EMSCRIPTEN_ROOT = os.path.join(os.environ['EXT_BUILD_ROOT'], os.environ['BZL_EMSCRIPTEN_ROOT'])
-    NODE_JS = os.path.join(os.environ['EXT_BUILD_ROOT'], os.environ['BZL_NODE_JS'])
-else:
-    CACHE = os.path.abspath(os.environ['BZL_CACHE'])
-    BINARYEN_ROOT = os.path.abspath(os.environ['BZL_BINARYEN_ROOT'])
-    LLVM_ROOT = os.path.abspath(os.environ['BZL_LLVM_ROOT'])
-    EMSCRIPTEN_ROOT = os.path.abspath(os.environ['BZL_EMSCRIPTEN_ROOT'])
-    NODE_JS = os.path.abspath(os.environ['BZL_NODE_JS'])
-    os.environ.update(
-        BZL_CACHE = CACHE,
-        BZL_BINARYEN_ROOT = BINARYEN_ROOT,
-        BZL_LLVM_ROOT = LLVM_ROOT,
-        BZL_EMSCRIPTEN_ROOT = EMSCRIPTEN_ROOT,
-        BZL_NODE_JS = NODE_JS
-    )
-"""
+# EMSCRIPTEN_CONFIG = """
+# import sys
+# import os
+
+# sys.stderr.write("!! BZL_BINARYEN_ROOT = {}\\n".format(os.environ['BZL_BINARYEN_ROOT']))
+# sys.stderr.write("!! BZL_LLVM_ROOT = {}\\n".format(os.environ['BZL_LLVM_ROOT']))
+# sys.stderr.write("!! BZL_EMSCRIPTEN_ROOT = {}\\n".format(os.environ['BZL_EMSCRIPTEN_ROOT']))
+# sys.stderr.write("!! BZL_CACHE = {}\\n".format(os.environ['BZL_CACHE']))
+# sys.stderr.write("!! BZL_NODE_JS = {}\\n".format(os.environ['BZL_NODE_JS']))
+
+# FROZEN_CACHE = True
+# if os.environ.get('EXT_BUILD_ROOT'):
+#     CACHE = os.path.join(os.environ['EXT_BUILD_ROOT'], os.environ['BZL_CACHE'])
+#     BINARYEN_ROOT = os.path.join(os.environ['EXT_BUILD_ROOT'], os.environ['BZL_BINARYEN_ROOT'])
+#     LLVM_ROOT = os.path.join(os.environ['EXT_BUILD_ROOT'], os.environ['BZL_LLVM_ROOT'])
+#     EMSCRIPTEN_ROOT = os.path.join(os.environ['EXT_BUILD_ROOT'], os.environ['BZL_EMSCRIPTEN_ROOT'])
+#     NODE_JS = os.path.join(os.environ['EXT_BUILD_ROOT'], os.environ['BZL_NODE_JS'])
+# else:
+#     CACHE = os.path.abspath(os.environ['BZL_CACHE'])
+#     BINARYEN_ROOT = os.path.abspath(os.environ['BZL_BINARYEN_ROOT'])
+#     LLVM_ROOT = os.path.abspath(os.environ['BZL_LLVM_ROOT'])
+#     EMSCRIPTEN_ROOT = os.path.abspath(os.environ['BZL_EMSCRIPTEN_ROOT'])
+#     NODE_JS = os.path.abspath(os.environ['BZL_NODE_JS'])
+#     os.environ.update(
+#         BZL_CACHE = CACHE,
+#         BZL_BINARYEN_ROOT = BINARYEN_ROOT,
+#         BZL_LLVM_ROOT = LLVM_ROOT,
+#         BZL_EMSCRIPTEN_ROOT = EMSCRIPTEN_ROOT,
+#         BZL_NODE_JS = NODE_JS
+#     )
+# """
 
 BUILD_HEADER_TEMPLATE = """
 {load_statements}
@@ -52,13 +60,13 @@ def _emscripten_repository_impl(repository_ctx):
     #path = EMSCRIPTEN_URL.format("linux", revision.hash, "", "tar.xz")
     #repository_ctx.download_and_extract(path, sha256=revision.sha_linux)
     # TODO hack to speed up local development
-    # repository_ctx.download_and_extract("http://127.0.0.1:8000/wasm-binaries-hack.tar.xz", sha256="8c3f19c7a154f04bcdc744ba1b4264bd17f106512018ec629220ba5c18cec488")
+    #repository_ctx.download_and_extract("http://127.0.0.1:8000/wasm-binaries-hack.tar.xz", sha256="7aff6b48b7da9a0cc68bc80395df1f3c82b49c40d6fc5af61892c8f9f492a7f7")
     repository_ctx.download_and_extract("http://127.0.0.1:8000/wasm-binaries.tar.xz", sha256="6c0a22dc52b3e0c30f1864d3d9794c142eb7590628c09b307e654d45ab8a7270")
 
     load_statements = []
     invocations = []
     for cache in repository_ctx.attr.caches:
-        repo_name = cache.repo_name.replace("~", "_") + "_config"
+        repo_name = cache.repo_name.replace("~", "_").replace("+", "_") + "_config"
         load_statement = "load('{cache}', {repo_name} = 'config')".format(
             cache = cache,
             repo_name = repo_name
@@ -72,8 +80,9 @@ def _emscripten_repository_impl(repository_ctx):
         install_dir = str(repository_ctx.path('install'))
     )
 
-    # Create the Emscripten config file
-    repository_ctx.file("install/emscripten/.emscripten", EMSCRIPTEN_CONFIG)
+    # Copy the script for generating the Emscripten configuration file
+    repository_ctx.file("emscripten_config.py", repository_ctx.read(Label("emscripten_config.py")))
+    #repository_ctx.file("install/emscripten/.emscripten", EMSCRIPTEN_CONFIG)
     
     # Create the BUILD.bazel file for the repository
     repository_ctx.file("BUILD.bazel", build_header + repository_ctx.read(Label("toolchain.BUILD.bazel")))

@@ -2,8 +2,8 @@ FROM debian:trixie-slim
 ENV SHELL /bin/bash
 ARG user_id=1000
 ARG group_id=1000
-ARG bazel_version=7.6.1
-ARG buildifier_version=7.3.1
+ARG bazel_version=8.2.1
+ARG buildifier_version=8.2.0
 
 RUN apt-get update && apt-get install --assume-yes --no-install-recommends \
     automake \
