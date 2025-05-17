@@ -46,14 +46,10 @@ install_dir = "{install_dir}"
 """
 
 def _emscripten_repository_impl(repository_ctx):  
-    # revision = EMSCRIPTEN_TAGS[repository_ctx.attr.version]
+    revision = EMSCRIPTEN_TAGS[repository_ctx.attr.version]
     # TODO support and test other OSes
-    # TODO support and test sha256 for other OSes
-    #path = EMSCRIPTEN_URL.format("linux", revision.hash, "", "tar.xz")
-    #repository_ctx.download_and_extract(path, sha256=revision.sha_linux)
-    # TODO hack to speed up local development
-    # repository_ctx.download_and_extract("http://127.0.0.1:8000/wasm-binaries-hack.tar.xz", sha256="8c3f19c7a154f04bcdc744ba1b4264bd17f106512018ec629220ba5c18cec488")
-    repository_ctx.download_and_extract("http://127.0.0.1:8000/wasm-binaries.tar.xz", sha256="6c0a22dc52b3e0c30f1864d3d9794c142eb7590628c09b307e654d45ab8a7270")
+    path = EMSCRIPTEN_URL.format("linux", revision.hash, "", "tar.xz")
+    repository_ctx.download_and_extract(path, sha256=revision.sha_linux)
 
     load_statements = []
     invocations = []

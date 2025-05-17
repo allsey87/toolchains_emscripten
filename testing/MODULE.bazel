@@ -3,10 +3,10 @@ module(name = "toolchains_emscripten_integration_tests", version = "0.0.0", comp
 
 bazel_dep(name = "rules_cc", version = "0.1.1")
 bazel_dep(name = "rules_foreign_cc", version = "0.14.0")
-# TODO REMOVE THIS AFTER DEBUGGING
-local_path_override(
+git_override(
     module_name = "rules_foreign_cc",
-    path = "rules_foreign_cc/upstream"
+    remote = "https://github.com/bazel-contrib/rules_foreign_cc.git",
+    commit = "ed5f7c974f67d0201be8d87780dcb0fe9557ea6d"
 )
 
 bazel_dep(name = "aspect_bazel_lib", version = "2.10.0")
