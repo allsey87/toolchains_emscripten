@@ -1,5 +1,6 @@
 platform(
     name = "wasm32-emscripten",
+    visibility = ["//visibility:public"],
     constraint_values = [
         "@platforms//cpu:wasm32",
         "@platforms//os:emscripten",
@@ -8,6 +9,7 @@ platform(
 
 platform(
     name = "wasm32-wasi",
+    visibility = ["//visibility:public"],
     constraint_values = [
         "@platforms//cpu:wasm32",
         "@platforms//os:wasi",
