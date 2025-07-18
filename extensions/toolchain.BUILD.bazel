@@ -28,6 +28,7 @@ py_library(
             "install/**/*"
         ],
         exclude = [
+            "install/emscripten/**/*.pyc",
             "install/emscripten/**/*.py",
             "install/bin/**/*",
             "install/emscripten/cache/**/*",
