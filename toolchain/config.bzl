@@ -55,18 +55,20 @@ def _impl(ctx):
         ),
     ]
 
+    toolchain_root = ctx.attr.llvm.label.workspace_root + "/install"
+
     env_entries_emscripten = [
         env_entry(
             key = "BZL_BINARYEN_ROOT",
-            value = ctx.attr.assets.label.workspace_root + "/install",
+            value = toolchain_root,
         ),
         env_entry(
             key = "BZL_LLVM_ROOT",
-            value = ctx.attr.assets.label.workspace_root + "/install/bin",
+            value = toolchain_root + "/bin",
         ),
         env_entry(
             key = "BZL_EMSCRIPTEN_ROOT",
-            value = ctx.attr.assets.label.workspace_root + "/install/emscripten",
+            value = toolchain_root + "/emscripten",
         ),
         env_entry(
             key = "BZL_CACHE",
@@ -139,6 +141,17 @@ def _impl(ctx):
                     )
                 ]
             ),
+            flag_set(
+                actions = [ACTION_NAMES.c_compile],
+                flag_groups = [
+                    flag_group(
+                        flags = [
+                            "-isystem",
+                            toolchain_root + "/lib/clang/20/include",
+                       ]
+                    )
+                ]
+            ),
         ],
     )
 
@@ -164,14 +177,12 @@ def _impl(ctx):
             extension = ".so",
         )
     ]
-   
-    builtin_sysroot = ctx.files.cache[0].dirname + "/sysroot"
-    
+
     return cc_common.create_cc_toolchain_config_info(
         ctx = ctx,
         features = features,
         action_configs = action_configs,
-        builtin_sysroot = builtin_sysroot,
+        builtin_sysroot = toolchain_root + "/emscripten/cache/sysroot",
         toolchain_identifier = "wasm32-emscripten",
         target_system_name = "wasm32-unknown-emscripten",
         target_cpu = "wasm32",
@@ -188,7 +199,7 @@ emscripten_toolchain_config = rule(
         "emcc": attr.label(mandatory = True, executable = True, allow_files = True, cfg = "exec"),
         "emxx": attr.label(mandatory = True, executable = True, allow_files = True, cfg = "exec"),
         "emar": attr.label(mandatory = True, executable = True, allow_files = True, cfg = "exec"),
-        "assets": attr.label(mandatory = True, cfg = "exec"),
+        "llvm": attr.label(mandatory = True, cfg = "exec"),
         "cache": attr.label(mandatory = True, cfg = "exec", providers = [EmscriptenCacheInfo]),
         "node": attr.label(mandatory = True, executable = True, allow_files = True, cfg = "exec"),
     },

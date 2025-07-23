@@ -8,9 +8,10 @@ load("@toolchains_emscripten//toolchain:config.bzl", "emscripten_toolchain_confi
 load("@toolchains_emscripten//toolchain:emscripten_cache.bzl", "emscripten_combine_cache")
 
 filegroup(
-    name = "assets",
+    name = "llvm",
     srcs = glob([
         "install/bin/**/*",
+        "install/lib/**/*",
         #"install/emscripten/node_modules/**/*"
     ])
 )
@@ -148,11 +149,11 @@ emscripten_combine_cache(
 )
 
 # this is just a simple rule that returns a CcToolchainConfigInfo
-# only thing this is doing with :cache and :assets is setting up the environment variables like BZL_CACHE
+# only thing this is doing with :cache and :llvm is setting up the environment variables like BZL_CACHE
 # the actual making-available of these files occurs via the cc_toolchain options below
 emscripten_toolchain_config(
     name = "emscripten_toolchain_config",
-    assets = ":assets",
+    llvm = ":llvm",
     cache = ":cache",
     emcc = ":emcc_zip_executable",
     emxx = ":emxx_zip_executable",
@@ -170,8 +171,9 @@ filegroup(
         ":emxx_zip_executable",
         ":emar_zip_executable",
         "@nodejs//:node_bin",
-        ":assets",
-        ":cache"
+        ":llvm",
+        ":prebuilt_cache", # used for sysroot
+        ":cache" # used for BZL_CACHE variable
     ]
 )
 
@@ -182,7 +184,7 @@ filegroup(
     name = "ar_files",
     srcs = [
         ":emar_zip_executable",
-        ":assets",
+        ":llvm",
     ]
 )
 
