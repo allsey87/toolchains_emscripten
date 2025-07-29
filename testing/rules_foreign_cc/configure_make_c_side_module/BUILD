@@ -4,7 +4,7 @@ load("@rules_foreign_cc//foreign_cc:defs.bzl", "configure_make")
 cc_binary(
     name = "c_main_module",
     srcs = ["src/main.c"],
-    linkopts = ["-sSTRICT", "-sSINGLE_FILE", "-sMAIN_MODULE=1"],
+    linkopts = ["-sSTRICT", "-sSINGLE_FILE", "-sMAIN_MODULE=1", "-lstubs"],
     copts = ["-fPIC"],
 )
 

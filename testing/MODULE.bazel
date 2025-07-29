@@ -26,6 +26,7 @@ emscripten_cache.declare(
     name = "emscripten_cache_pic",
     pic = True,
     targets = [
+        "libstubs",
         "libstubs-debug",
         "libnoexit",
         "libc-debug",
@@ -44,10 +45,10 @@ use_repo(emscripten_cache, emscripten_cache_pic = "emscripten_cache_pic")
 
 emscripten = use_extension("@toolchains_emscripten//extensions:emscripten.bzl", "emscripten")
 emscripten.toolchain(
-    version = "3.1.73",
+    version = "3.1.58",
     caches = [
         "@emscripten_cache_pic//:declaration.bzl"
     ]
 )
-use_repo(emscripten, emscripten_3_1_73 = "emscripten_3_1_73")
-register_toolchains("@emscripten_3_1_73//:toolchain")
+use_repo(emscripten, emscripten_3_1_58 = "emscripten_3_1_58")
+register_toolchains("@emscripten_3_1_58//:toolchain")

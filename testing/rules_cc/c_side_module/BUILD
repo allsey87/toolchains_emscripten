@@ -24,7 +24,7 @@ cc_library(
 emscripten_binary(
     name = "c_main_module",
     deps = [":c_main_module_lib"],
-    linkopts = ["-sMAIN_MODULE",  "-sSTRICT"],
+    linkopts = ["-sMAIN_MODULE",  "-sSTRICT", "-lstubs"],
 )
 
 write_file(

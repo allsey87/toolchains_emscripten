@@ -147,7 +147,7 @@ def _impl(ctx):
                     flag_group(
                         flags = [
                             "-isystem",
-                            toolchain_root + "/lib/clang/20/include",
+                            toolchain_root + "/lib/clang/19/include",
                        ]
                     )
                 ]

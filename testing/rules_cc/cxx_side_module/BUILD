@@ -24,7 +24,7 @@ cc_library(
 emscripten_binary(
     name = "cxx_main_module",
     deps = [":cxx_main_module_lib"],
-    linkopts = ["-fwasm-exceptions", "-sMAIN_MODULE",  "-sSTRICT"],
+    linkopts = ["-fwasm-exceptions", "-sMAIN_MODULE",  "-sSTRICT", "-lstubs"],
 )
 
 write_file(
