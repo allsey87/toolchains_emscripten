@@ -42,6 +42,10 @@ def _impl(ctx):
             tools = [emxx],
         ),
         action_config(
+            action_name = ACTION_NAMES.cpp_link_nodeps_dynamic_library,
+            tools = [emxx],
+        ),
+        action_config(
             action_name = ACTION_NAMES.cpp_module_codegen,
             tools = [emxx],
         ),
