@@ -162,11 +162,27 @@ def _impl(ctx):
     dbg_feature = feature(name = "dbg")
     opt_feature = feature(name = "opt")
 
+    # Override Bazel's built-in shared_flag feature to prevent -shared from being added
+    shared_flag_feature = feature(
+        name = "shared_flag",
+        enabled = True,
+        flag_sets = [
+            flag_set(
+                actions = [
+                    ACTION_NAMES.cpp_link_dynamic_library,
+                    ACTION_NAMES.cpp_link_nodeps_dynamic_library,
+                ],
+                flag_groups = []  # Empty flag_groups - prevents -shared
+            )
+        ]
+    )
+
     features = [
         dbg_feature,
         opt_feature,
         default_feature,
         archiver_flags_feature,
+        shared_flag_feature,
     ]
 
     artifact_name_patterns = [
