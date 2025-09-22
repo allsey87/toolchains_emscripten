@@ -50,6 +50,8 @@ def _emscripten_repository_impl(repository_ctx):
     # TODO support and test other OSes
     path = EMSCRIPTEN_URL.format("linux", revision.hash, "", "tar.xz")
     repository_ctx.download_and_extract(path, sha256=revision.sha_linux)
+    for patch in repository_ctx.attr.patches:
+        repository_ctx.patch(patch)
 
     load_statements = []
     invocations = []
@@ -79,6 +81,7 @@ emscripten_repository = repository_rule(
     attrs = {
         "version": attr.string(),
         "caches": attr.label_list(),
+        "patches": attr.label_list(),
     }
 )
 
@@ -89,6 +92,7 @@ def _emscripten_impl(ctx):
                 name = "emscripten_" + toolchain.version.replace(".", "_"),
                 version = toolchain.version,
                 caches = toolchain.caches,
+                patches = toolchain.patches,
             )
     
     return ctx.extension_metadata(reproducible = True)
@@ -109,7 +113,8 @@ The Emscripten version, in `major.minor.patch` format, e.g.
 `3.1.73`), to create a toolchain for.
 """,
         ),
-        "caches": attr.label_list()
+        "caches": attr.label_list(),
+        "patches": attr.label_list()
     },
 )
 
