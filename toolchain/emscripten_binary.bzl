@@ -52,8 +52,8 @@ def _emscripten_binary_impl(ctx):
         outputs.append(output_js)
         arguments.add("-o", output_js)
 
-    # append all linkopts
-    arguments.add_all(ctx.attr.linkopts)
+    # append linkopts from command line and attribute
+    arguments.add_all(ctx.fragments.cpp.linkopts + ctx.attr.linkopts)
     
     ctx.actions.run(
         executable = linker,
