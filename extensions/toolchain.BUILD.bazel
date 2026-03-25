@@ -20,7 +20,19 @@ filegroup(
     name = "prebuilt_cache",
     srcs = glob([
         "install/emscripten/cache/**/*",
-    ])
+    ]),
+)
+
+filegroup(
+    name = "sysroot_headers",
+    srcs = glob(["install/emscripten/cache/sysroot/include/**"]),
+    visibility = ["//visibility:public"],
+)
+
+filegroup(
+    name = "clang_headers",
+    srcs = glob(["install/lib/clang/19/include/**"]),
+    visibility = ["//visibility:public"],
 )
 
 py_library(
@@ -145,7 +157,8 @@ emscripten_combine_cache(
     prebuilt_cache = ":prebuilt_cache",
     generated_caches = [
         "generate_cache_{}".format(name) for name in embuilder_invocations.keys()
-    ]
+    ],
+    visibility = ["//visibility:public"],
 )
 
 # this is just a simple rule that returns a CcToolchainConfigInfo
